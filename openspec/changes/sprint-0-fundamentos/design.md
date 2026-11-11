@@ -30,7 +30,7 @@ Se usa `pnpm-workspace.yaml` con `apps/web` y `apps/api`, sin Turborepo. Con dos
 *Alternativas:* npm workspaces (más lento y con un manejo peor de las dependencias fantasma), Turborepo o Nx (complejidad que no se necesita con dos apps). → **Pendiente de confirmar, P1.**
 
 ### D2. Entrada del Worker con NestJS cacheado por instancia
-`src/worker.ts` crea la app NestJS de forma perezosa, en la primera petición de cada instancia, y guarda la promesa. Después hace `app.init()` y la expone con `createServer` de `node:http` y `httpServerHandler`. Exporta `{ fetch, scheduled }`. La inicialización no abre conexiones a Postgres ni al almacén: se conectan cuando se usan, para que `/health/live` no dependa de nada.
+`src/worker.ts` crea la app NestJS una vez por instancia, en el ámbito global del módulo (con `await` de nivel superior), y guarda la promesa; si falla, se reintenta en la primera petición. Así la CPU de la inicialización cuenta como arranque y no como CPU de la petición (prueba 1). Después hace `app.init()` y la expone con `createServer` de `node:http` y `httpServerHandler`. Exporta `{ fetch, scheduled }`. La inicialización no abre conexiones a Postgres ni al almacén: se conectan cuando se usan, para que `/health/live` no dependa de nada.
 *Alternativa:* inicializar en el ámbito global del módulo. Se descarta porque Workers no permite E/S fuera de un handler.
 
 **Hallazgos de implementación:**
