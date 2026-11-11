@@ -7,8 +7,10 @@ import globals from 'globals';
 const WEB = 'apps/web/src';
 const FUNCIONALIDADES = ['catalogo', 'auth', 'admin'];
 const sinSubir = {
-  group: ['../*', '../**'],
-  message: 'Usa el alias @/ en lugar de rutas relativas que suben de nivel (regla de capas).',
+  // Dentro de una funcionalidad o de components/ se admite ../ (misma capa); salir de ella
+  // con ../../ no, para que la regla de capas no se pueda saltar.
+  group: ['../../*', '../../**'],
+  message: 'Usa el alias @/ para importar desde otra capa o funcionalidad (regla de capas).',
 };
 const prohibir = (grupos, mensaje) => ({ group: grupos, message: mensaje });
 

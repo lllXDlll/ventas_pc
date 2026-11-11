@@ -21,7 +21,7 @@ import { VitrinaProductos } from './vitrina-productos';
 // Vitrina interna de componentes (spec arquitectura-frontend): fuera de la navegación y
 // de los buscadores.
 export const metadata: Metadata = {
-  title: 'Vitrina de componentes · XDTech',
+  title: 'Vitrina de componentes',
   robots: { index: false, follow: false },
 };
 
@@ -36,7 +36,7 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
 
 export default function VitrinaUi() {
   return (
-    <main className="contenedor flex flex-col gap-8 py-10">
+    <div className="contenedor flex flex-col gap-8 py-10">
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl">Vitrina de componentes</h1>
         <p className="text-text-muted">
@@ -143,6 +143,6 @@ export default function VitrinaUi() {
       </Seccion>
 
       <VitrinaProductos />
-    </main>
+    </div>
   );
 }

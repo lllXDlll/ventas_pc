@@ -7,25 +7,25 @@ test('@humo el catálogo lista productos con precio y disponibilidad', async ({ 
   await page.goto('/catalogo');
   await expect(page.getByRole('heading', { name: 'Catálogo' })).toBeVisible();
   await expect(page.getByText(/\d+ productos disponibles/)).toBeVisible();
-  const tarjetas = page.locator('article.tarjeta');
+  const tarjetas = page.getByRole('article');
   await expect(tarjetas.first()).toBeVisible();
   await expect(tarjetas.first()).toContainText('S/');
-  await expect(tarjetas.first()).toContainText('Disponibles:');
+  await expect(tarjetas.first()).toContainText(/En stock|Últimas? \d* ?unidad/);
 });
 
 test('@humo el filtro por categoría deja solo esa categoría', async ({ page }) => {
   await page.goto('/catalogo');
-  await page.getByLabel('Categoría').selectOption('RAM');
+  await page.getByLabel('Categoría', { exact: true }).selectOption('RAM');
   await page.getByRole('button', { name: 'Filtrar' }).click();
   await expect(page).toHaveURL(/categoria=RAM/);
-  const tarjetas = page.locator('article.tarjeta');
+  const tarjetas = page.getByRole('article');
   await expect(tarjetas.first()).toBeVisible();
   for (const texto of await tarjetas.allTextContents()) expect(texto).toContain('Memoria RAM');
 });
 
 test('@humo el filtro por precio respeta el rango', async ({ page }) => {
   await page.goto('/catalogo?precioMin=100&precioMax=300');
-  const precios = await page.locator('article.tarjeta').getByText(/^S\/ /).allTextContents();
+  const precios = await page.getByRole('article').getByText(/^S\/ /).allTextContents();
   expect(precios.length).toBeGreaterThan(0);
   for (const p of precios) {
     const valor = Number(p.replace('S/', '').replace(/,/g, '').trim());

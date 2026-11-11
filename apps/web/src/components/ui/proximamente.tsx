@@ -25,7 +25,7 @@ export function BotonProximamente({
       >
         {children}
       </Button>
-      <span role="status" className="text-xs text-text-muted">
+      <span aria-live="polite" className="text-xs text-text-muted">
         {aviso ? 'Disponible pronto' : ''}
       </span>
     </span>

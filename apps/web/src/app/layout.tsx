@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
-import Link from 'next/link';
+import { Footer, Header, TopBar } from '@/components/layout/shell';
+import { CuentaCabecera } from '@/features/auth/contenedores/cuenta';
+import { MegaMenuContenedor } from '@/features/catalogo/contenedores/inicio';
 import '@/styles/globals.css';
-import { CabeceraSesion, ProveedorSesion } from './sesion';
+import { Providers } from './providers';
 
 // Fuentes servidas por el propio sitio (next/font), expuestas como variables CSS.
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
@@ -13,26 +15,22 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'xdtech.store',
-  description: 'Computadoras y componentes con validación de compatibilidad',
+  title: { default: 'XDTech · Arma tu PC con compatibilidad validada', template: '%s · XDTech' },
+  description:
+    'Componentes y equipos armados con stock real y validación de compatibilidad en Ayacucho.',
 };
 
+/** Shell de la tienda: la cabecera recibe la cuenta y el mega menú como slots (design D1). */
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="es" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body>
-        <ProveedorSesion>
-          <header className="cabecera">
-            <nav className="fila">
-              <Link href="/" className="marca">
-                xdtech.store
-              </Link>
-              <Link href="/catalogo">Catálogo</Link>
-            </nav>
-            <CabeceraSesion />
-          </header>
-          <div className="contenido">{children}</div>
-        </ProveedorSesion>
+      <body className="flex min-h-dvh flex-col">
+        <Providers>
+          <TopBar />
+          <Header cuenta={<CuentaCabecera />} megaMenu={<MegaMenuContenedor />} />
+          <main className="flex flex-1 flex-col">{children}</main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

@@ -1,6 +1,4 @@
 /* Estilos globales: Tailwind v4 con los tokens de tokens.css (design D3 del Sprint 1.5). */
-/* Estilos de las pantallas del Sprint 1, en la capa de menor prioridad mientras se rediseñan. */
-@import './legado.css' layer(legado);
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import './tokens.css';

@@ -3,6 +3,7 @@ import {
   ATRIBUTOS_OBLIGATORIOS,
   CATEGORIAS,
   type CodigoCategoria,
+  NOMBRES_CATEGORIA,
   validarAtributos,
   validarTipo,
 } from './atributos';
@@ -80,5 +81,6 @@ describe('copia del frontend (apps/web/src/lib/atributos.ts)', () => {
     const web = await import('../../../web/src/lib/atributos');
     expect(web.ATRIBUTOS).toEqual(ATRIBUTOS_OBLIGATORIOS);
     expect([...web.CATEGORIAS]).toEqual([...CATEGORIAS]);
+    expect(web.NOMBRES_CATEGORIA).toEqual(NOMBRES_CATEGORIA);
   });
 });
