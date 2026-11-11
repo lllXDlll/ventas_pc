@@ -11,7 +11,11 @@ async function EstadoApiServidor() {
   const renderizadoEn = new Date().toISOString();
   let estado: string;
   try {
-    const res = await fetch(`${API_URL}/health/live`, { cache: 'no-store' });
+    // Con tiempo límite: una API caída no debe dejar colgado el render.
+    const res = await fetch(`${API_URL}/health/live`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(3000),
+    });
     estado = res.ok ? 'API disponible' : `API respondió ${res.status}`;
   } catch {
     estado = 'API no alcanzable';
