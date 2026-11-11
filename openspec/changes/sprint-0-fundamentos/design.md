@@ -38,7 +38,11 @@ Se usa `pnpm-workspace.yaml` con `apps/web` y `apps/api`, sin Turborepo. Con dos
 - NestJS importa de forma opcional `@nestjs/microservices` y `@nestjs/websockets`. Con `alias` en `wrangler.jsonc` se redirigen a un módulo vacío, que NestJS trata como "no instalado".
 - `@cloudflare/vitest-pool-workers` está obsoleto. Se usa su reemplazo, `@cloudflare/vitest-plugin`.
 - Versiones fijadas por compatibilidad: TypeScript 6.0 (typescript-eslint pide < 6.1) y Vitest 4.
-- Primera medición, sin Prisma: el bundle pesa 3,25 MiB sin comprimir y 655 KiB con gzip.
+- Primera medición, sin Prisma: el bundle pesa 3,25 MiB sin comprimir y 655 KiB con gzip. Con Prisma 7, que trae su compilador de consultas en WASM, sube a 7,3 MiB y 1,95 MiB.
+- Prisma 7 genera un `.wasm` y un `.js` que `tsc` no copia; `scripts/copiar-recursos.mjs` los lleva a `dist/`. La CLI se fija en 7.10.1, porque pnpm instalaba una 8.0-rc.
+- En el pool de Vitest para Workers hay dos problemas con `require()` en CommonJS. Por un lado, `pg` no recibe la variante `workerd` de `pg-cloudflare`, así que las pruebas con base de datos corren con `createTestHarness` de Wrangler. Por otro, el `loadPackage` de NestJS fallaba de forma intermitente, así que `class-validator` y `class-transformer` se pasan a `ValidationPipe` de forma explícita.
+- Durable Object `Inventario`: con tablas `WITHOUT ROWID`, una reserva de un producto escribe 4 filas (6 con rowid). Los errores de validación se devuelven como resultado (`INVALIDA`), sin lanzar excepciones por RPC.
+- Frontend: `cacheComponents` y `partialPrefetching` (activos en la plantilla de Next 16.4) colgaban el render en Workers sin caché incremental, así que se desactivan. Dentro de OneDrive, el build de OpenNext en Windows falla porque no puede leer los enlaces simbólicos; se compila en Linux (CI o contenedor).
 
 ### D3. Despacho de Cron por expresión
 `scheduled(event)` compara `event.cron` con un mapa `{ "* * * * *": expirar, "*/5 * * * *": reconciliar, "0 4 * * *": limpiarSesiones }`. El mismo mapa está declarado en `wrangler.jsonc`, y una prueba unitaria verifica que coincidan. La limpieza se fija a las 04:00 UTC (23:00 en Perú), fuera de horas de uso.
