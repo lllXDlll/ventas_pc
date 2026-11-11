@@ -37,7 +37,7 @@
 
 ## 5. Frontend
 
-- [ ] 5.1 Crear `apps/web` con Next.js y `@opennextjs/cloudflare`, una página con SSR y la URL pública de la API en una variable de compilación; se verifica con `pnpm --filter web preview`, que la sirve en local
+- [x] 5.1 Crear `apps/web` con Next.js y `@opennextjs/cloudflare`, una página con SSR y la URL pública de la API en una variable de compilación; se verifica con `pnpm --filter web preview`, que la sirve en local
 - [ ] 5.2 Configurar `wrangler.jsonc` del frontend; se verifica con `wrangler deploy` que publica la página en un subdominio `*.workers.dev`
 
 ## 6. Entrega continua y dominios
