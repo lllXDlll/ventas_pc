@@ -23,4 +23,17 @@ describe('DisponibleDurableObject', () => {
     const { ns } = namespaceFalso('otra cosa');
     await expect(new DisponibleDurableObject(ns).ping()).rejects.toThrow();
   });
+
+  it('disponibles devuelve el stock físico ya cargado, sin llamar al objeto (Sprint 1)', async () => {
+    const { ns, crudo } = namespaceFalso('ok');
+    const mapa = await new DisponibleDurableObject(ns).disponibles([
+      { productoId: 'a', stockFisico: 7 },
+      { productoId: 'b', stockFisico: 0 },
+    ]);
+    expect([...mapa]).toEqual([
+      ['a', 7],
+      ['b', 0],
+    ]);
+    expect(crudo.get).not.toHaveBeenCalled();
+  });
 });

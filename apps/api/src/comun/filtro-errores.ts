@@ -17,15 +17,28 @@ const CODIGOS_POR_ESTADO: Record<number, string> = {
 export interface ErrorApi {
   codigo: string;
   mensaje: string;
+  /** Datos adicionales del error de negocio (por ejemplo, la versión vigente en un 409). */
+  detalle?: Record<string, unknown>;
 }
 
 export function aErrorApi(estado: number, respuesta: unknown, mensajePorDefecto: string): ErrorApi {
   const codigoPorDefecto = CODIGOS_POR_ESTADO[estado] ?? 'ERROR';
   if (typeof respuesta === 'string') return { codigo: codigoPorDefecto, mensaje: respuesta };
   if (respuesta && typeof respuesta === 'object') {
-    const r = respuesta as { codigo?: unknown; mensaje?: unknown; message?: unknown };
+    const r = respuesta as {
+      codigo?: unknown;
+      mensaje?: unknown;
+      message?: unknown;
+      detalle?: unknown;
+    };
     const codigo = typeof r.codigo === 'string' ? r.codigo : codigoPorDefecto;
-    if (typeof r.mensaje === 'string') return { codigo, mensaje: r.mensaje };
+    if (typeof r.mensaje === 'string') {
+      const detalle =
+        r.detalle && typeof r.detalle === 'object' && !Array.isArray(r.detalle)
+          ? { detalle: r.detalle as Record<string, unknown> }
+          : {};
+      return { codigo, mensaje: r.mensaje, ...detalle };
+    }
     // Errores de validación de class-validator llegan como message: string[].
     if (Array.isArray(r.message)) return { codigo, mensaje: r.message.join('. ') };
     if (typeof r.message === 'string') return { codigo, mensaje: r.message };

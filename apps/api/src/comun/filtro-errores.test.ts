@@ -9,6 +9,12 @@ describe('aErrorApi', () => {
     });
   });
 
+  it('conserva el detalle de un error de negocio', () => {
+    expect(
+      aErrorApi(409, { codigo: 'CONFLICTO', mensaje: 'm', detalle: { version: 4 }, extra: 1 }, 'x'),
+    ).toEqual({ codigo: 'CONFLICTO', mensaje: 'm', detalle: { version: 4 } });
+  });
+
   it('une los mensajes de validación', () => {
     expect(aErrorApi(400, { message: ['correo inválido', 'contraseña corta'] }, 'x')).toEqual({
       codigo: 'SOLICITUD_INVALIDA',

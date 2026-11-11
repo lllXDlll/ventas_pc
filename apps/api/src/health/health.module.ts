@@ -1,19 +1,13 @@
 import { Module } from '@nestjs/common';
 import { env } from 'cloudflare:workers';
 import { conPrisma } from '../datos/prisma';
-import { DisponibleDurableObject, DisponibleService } from '../reservas/disponible.service';
-import type { Inventario } from '../reservas/inventario';
+import { DisponibleService } from '../reservas/disponible.service';
 import { HealthController } from './health.controller';
 import { COMPROBADORES, type Comprobador, TIEMPO_ESPERA_MS } from './salud.service';
 
 @Module({
   controllers: [HealthController],
   providers: [
-    {
-      provide: DisponibleService,
-      useFactory: () =>
-        new DisponibleDurableObject(env.INVENTARIO as DurableObjectNamespace<Inventario>),
-    },
     {
       provide: TIEMPO_ESPERA_MS,
       useFactory: () => Number(env.HEALTH_TIMEOUT_MS) || 3000,
