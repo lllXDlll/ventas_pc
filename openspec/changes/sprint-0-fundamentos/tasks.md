@@ -51,7 +51,7 @@
 ## 7. Pruebas de compatibilidad (HU-36b)
 
 - [x] 7.1 Crear `docs/compatibilidad-cloudflare.md` con la tabla de las nueve pruebas (prueba, resultado, medidas, decisión) y una sección de decisiones que ya registre Node 24, Hyperdrive y la opción B como decisiones del desarrollador; se verifica con el archivo en el repositorio y las nueve filas presentes
-- [ ] 7.2 Prueba 1: medir el tamaño del bundle (comprimido y sin comprimir, con Prisma incluido), el arranque en frío y la CPU por petición de NestJS desplegado; se verifica con los números registrados y una decisión NestJS/Hono
+- [x] 7.2 Prueba 1: medir el tamaño del bundle (comprimido y sin comprimir, con Prisma incluido), el arranque en frío y la CPU por petición de NestJS desplegado; se verifica con los números registrados y una decisión NestJS/Hono
 - [x] 7.3 Prueba 2: confirmar la página SSR y el `fetch` con credenciales del frontend desplegado; se verifica con el resultado registrado y una decisión Cloudflare/Vercel
 - [ ] 7.4 Prueba 3: medir la latencia de Prisma con Neon a través de Hyperdrive desde el Worker desplegado, con la base suspendida (más de 5 min sin uso) y despierta, los subrequests por consulta y que una escritura se lee de inmediato (caché desactivado); reconfirmar los límites de Hyperdrive en el plan gratuito; se verifica con los números registrados (si falla, se prueba `@prisma/adapter-neon` y se registra)
 - [x] 7.5 Prueba 4: prototipo del Durable Object `Inventario` con SQLite (`reservar` todo o nada, `expirar`, `consultar`, caso "no inicializado"), con pruebas en el pool de Workers; se verifica con las pruebas en verde
