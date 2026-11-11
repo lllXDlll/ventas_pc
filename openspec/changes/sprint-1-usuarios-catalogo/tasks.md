@@ -30,7 +30,7 @@
 
 ## 4. Catálogo
 
-- [ ] 4.1 Validador puro de atributos por categoría con la tabla de design D8 y la coherencia entre tipo y categoría; se verifica con pruebas unitarias por categoría (atributo ausente, tipo inválido, atributos adicionales aceptados)
+- [x] 4.1 Validador puro de atributos por categoría con la tabla de design D8 y la coherencia entre tipo y categoría; se verifica con pruebas unitarias por categoría (atributo ausente, tipo inválido, atributos adicionales aceptados)
 - [ ] 4.2 `GET /categorias`, `POST /admin/productos` (producto y stock en una transacción, versión 0) y `PATCH /admin/productos/:id`, con `GET /admin/productos` para el panel; se verifica con pruebas e2e de los escenarios de alta y actualización de la spec `catalogo`
 - [ ] 4.3 `PATCH /admin/stock/:productoId` con bloqueo optimista (design D9): 200 con la versión aumentada, 409 con la versión y la cantidad vigentes, 400 para una cantidad negativa y 404 para un producto inexistente; se verifica con una prueba de integración de dos actualizaciones con la misma versión, en la que una gana y otra recibe 409
 - [ ] 4.4 `DisponibleService.disponibles(ids)` con la implementación `DisponibleStockFisico` (design D10), sin consultas extra; se verifica con una prueba unitaria y con un e2e en el que la disponibilidad del catálogo es igual al stock físico
