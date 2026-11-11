@@ -304,7 +304,11 @@ export function destinoDe(cadena: string): string {
 
 async function principal(): Promise<void> {
   const parte = process.argv[2];
-  const cadena = (process.env.DIRECT_URL || URL_LOCAL).trim();
+  const definida = (process.env.DIRECT_URL ?? '').trim();
+  if (!definida) {
+    console.warn('AVISO: DIRECT_URL no está definida; se usa el Postgres LOCAL de docker-compose.');
+  }
+  const cadena = definida || URL_LOCAL;
   const destino = destinoDe(cadena);
   console.log(`base de datos: ${destino}`);
   const cliente = new pg.Client({ connectionString: cadena });

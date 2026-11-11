@@ -30,7 +30,8 @@ variable usa el Postgres de docker-compose. Las tres partes son idempotentes.
 ### Administrador y catálogo en producción (Neon)
 
 Usa la cadena **directa** de Neon (la misma del secreto `NEON_DIRECT_URL` de la CI). El script
-muestra a qué base se conecta (sin la contraseña) y rechaza una cadena incompleta o la del pooler.
+muestra a qué base se conecta (sin la contraseña) y rechaza una cadena incompleta o la del pooler. Comprueba que la línea `base de datos:` muestre el
+host de Neon (`ep-….neon.tech`) y no `localhost`.
 El correo y la contraseña del administrador se pasan en el momento: nunca se
 guardan en el repositorio ni en `.env`. La contraseña debe tener al menos 12
 caracteres.
@@ -40,12 +41,12 @@ PowerShell:
 ```powershell
 # Pega la cadena completa: postgresql://usuario:clave@ep-….neon.tech/neondb?sslmode=require
 # (la DIRECTA, sin "-pooler" en el host; sin "psql" ni comillas alrededor).
-$env:DIRECT_URL = Read-Host "Cadena directa de Neon"
+$env:DIRECT_URL = Read-Host "Cadena directa de Neon"   # no edites esta línea: pega la cadena cuando la pida
 $env:ADMIN_CORREO = "admin@xdtech.store"
 $env:ADMIN_CONTRASENA = Read-Host "Contraseña del administrador"
 pnpm --filter api semilla:admin
 pnpm --filter api semilla:catalogo
-Remove-Item Env:DIRECT_URL, Env:ADMIN_CORREO, Env:ADMIN_CONTRASENA
+Remove-Item Env:DIRECT_URL, Env:ADMIN_CORREO, Env:ADMIN_CONTRASENA -ErrorAction SilentlyContinue
 ```
 
 Bash:
