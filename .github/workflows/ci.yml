@@ -113,8 +113,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Primero el esquema: el código nuevo puede depender de él.
+      # Con reintentos: si Neon está suspendida, la primera conexión puede fallar
+      # mientras despierta. migrate deploy es idempotente.
       - name: Migraciones en Neon
-        run: pnpm --filter api migrate:deploy
+        run: |
+          for intento in 1 2 3; do
+            pnpm --filter api migrate:deploy && exit 0
+            echo "::warning::migrate deploy falló (intento $intento de 3); reintento en 15 s"
+            sleep 15
+          done
+          exit 1
         env:
           DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
 
