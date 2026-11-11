@@ -283,10 +283,39 @@ export async function semillaAdmin(
   );
 }
 
+/** Valida la cadena y devuelve el destino sin la contraseña, para los mensajes. */
+export function destinoDe(cadena: string): string {
+  let url: URL;
+  try {
+    url = new URL(cadena.trim());
+  } catch {
+    throw new Error(
+      'DIRECT_URL no es una URL completa. Debe empezar con postgresql:// (cópiala de Neon sin "psql" ni comillas).',
+    );
+  }
+  if (url.protocol !== 'postgresql:' && url.protocol !== 'postgres:') {
+    throw new Error(`DIRECT_URL debe empezar con postgresql:// (empieza con ${url.protocol}//).`);
+  }
+  if (url.hostname.includes('-pooler')) {
+    throw new Error('DIRECT_URL apunta al pooler de Neon; usa la cadena directa (sin "-pooler").');
+  }
+  return `${url.username || '?'}@${url.hostname}${url.port ? ':' + url.port : ''}${url.pathname}`;
+}
+
 async function principal(): Promise<void> {
   const parte = process.argv[2];
-  const cliente = new pg.Client({ connectionString: process.env.DIRECT_URL || URL_LOCAL });
-  await cliente.connect();
+  const cadena = (process.env.DIRECT_URL || URL_LOCAL).trim();
+  const destino = destinoDe(cadena);
+  console.log(`base de datos: ${destino}`);
+  const cliente = new pg.Client({ connectionString: cadena });
+  try {
+    await cliente.connect();
+  } catch (error) {
+    throw new Error(
+      `no se pudo conectar a ${destino}: ${error instanceof Error ? error.message : error}`,
+      { cause: error },
+    );
+  }
   try {
     if (parte === 'categorias') console.log(`categorías: ${await semillaCategorias(cliente)}`);
     else if (parte === 'catalogo') {
