@@ -1,5 +1,5 @@
 // Entrada del Worker (design.md D2): NestJS se inicializa una sola vez por
-// instancia, de forma perezosa en la primera petición (Workers no permite E/S
+// instancia, en el ámbito global del módulo (sin E/S, que Workers no permite
 // fuera de un handler), y se expone con httpServerHandler de cloudflare:node.
 import 'reflect-metadata';
 import { createServer } from 'node:http';
@@ -46,6 +46,22 @@ const servidor = createServer((req, res) => {
 servidor.listen(PUERTO);
 
 const http = httpServerHandler({ port: PUERTO });
+
+// Prueba 1 (opción a): NestJS se inicializa al cargar el módulo. Esa CPU cuenta como
+// tiempo de arranque del isolate y no como CPU de la primera petición. La
+// inicialización no hace E/S (Postgres y el almacén se conectan al usarse). Si falla,
+// asegurarApp() la reintenta de forma perezosa en la primera petición.
+try {
+  await asegurarApp();
+} catch (error) {
+  console.error(
+    JSON.stringify({
+      nivel: 'error',
+      mensaje: 'fallo al iniciar la API en el arranque; se reintenta en la primera petición',
+      error: String(error),
+    }),
+  );
+}
 
 export default {
   fetch: http.fetch,
