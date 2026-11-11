@@ -16,7 +16,7 @@ export function MegaMenu({ marcas }: { marcas: string[] }) {
   const cerrar = () => setAbierto(false);
   return (
     <Popover.Root open={abierto} onOpenChange={setAbierto}>
-      <Popover.Trigger className="inline-flex h-8 items-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-on-color hover:bg-primary-hover">
+      <Popover.Trigger className="inline-flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-control bg-primary px-3 text-sm font-medium text-on-color hover:bg-primary-hover">
         <LayoutGrid className="size-4" strokeWidth={1.5} aria-hidden="true" />
         Todas las categorías
         <ChevronDown className="size-4" strokeWidth={1.5} aria-hidden="true" />

@@ -119,3 +119,35 @@ CPU por petición en producción (`wrangler tail`), justo después del despliegu
 
 - Los filtros por marca, socket, texto y orden no suben la CPU del listado. En el Sprint 1 la mediana era de 15 ms.
 - Las facetas cuestan lo mismo que el listado. El frontend las guarda 5 minutos en caché (`staleTime`), así que no se piden en cada navegación.
+
+## Lighthouse móvil en `/catalogo` (tarea 10.4, 2026-11-11)
+
+**Resultado: accesibilidad 100 (objetivo ≥ 90, OK); rendimiento 71–79 en 6 corridas (objetivo ≥ 80, NO OK).**
+
+| Corrida | Rendimiento | Accesibilidad | TTFB del documento | LCP | Cambio desplegado |
+|---|---|---|---|---|---|
+| 1–3 | 75, 79, 77 | 100 | 840–900 ms | 4,2–4,4 s | despliegue inicial del Sprint 1.5 |
+| 4–6 | 71, 74, 76 | 100 | 1.170–2.640 ms | 4,4–5,9 s | Smart Placement + `relationJoins` |
+
+**Causa.**
+- El CLS es 0 y el TBT es de 220–280 ms. El LCP es el nombre de un producto, que ya llega en el HTML.
+- Lo que pesa es la latencia hasta Neon. La base está en AWS `us-east-2` (Ohio) y los Workers corren en São Paulo (`Cf-Placement: local-GRU`), así que cada consulta suma unos 150 ms de ida y vuelta.
+- Mediana de 5 a 9 peticiones desde Lima:
+
+| Ruta | Consultas a Neon | TTFB |
+|---|---|---|
+| `/health/live` | 0 | 0,47 s |
+| `/categorias` | 1 | 0,62 s |
+| `/productos` | varias | 1,12 s |
+
+**Correcciones aplicadas.**
+- **Smart Placement en el Worker de la API.** Tras 25 minutos de tráfico ligero, Cloudflare mantuvo el Worker en GRU. Sin efecto.
+- **`relationJoins` de Prisma.** La categoría y el stock se cargan con un JOIN en la misma consulta:
+  - `/productos` pasa de 1,12 s a 0,80 s;
+  - `/productos/:id` pasa de 0,98 s a 0,64 s.
+
+  El TTFB del documento sigue variando de 1,2 a 2,6 s por el render de OpenNext más las llamadas a la API.
+
+**Pendiente (decisión del desarrollador).**
+- **Mover Neon a una región cercana a los visitantes** (AWS `sa-east-1`, São Paulo). Es la corrección de fondo: bajaría cada viaje de ~150 ms a unos pocos milisegundos. Exige crear el proyecto en esa región, migrar los datos y actualizar Hyperdrive y el secreto `NEON_DIRECT_URL`.
+- **Una caché corta en el borde** para el catálogo público **no se aplica**: contradice el requisito "los cambios se ven en la siguiente consulta" (spec `catalogo`).

@@ -74,7 +74,7 @@ export function Header({ cuenta, megaMenu }: { cuenta: ReactNode; megaMenu: Reac
       <nav aria-label="Navegación principal" className="hidden border-t border-border md:block">
         <div className="contenedor flex h-11 items-center gap-2">
           {megaMenu}
-          <QuickLinks />
+          <QuickLinks className="hidden lg:flex" />
         </div>
       </nav>
     </header>
