@@ -39,4 +39,14 @@
     ],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Inventario", "Limites"] }],
+  // Neon a través de Hyperdrive, con caché de consultas DESACTIVADO (design.md D4).
+  // La cadena de Neon vive en la configuración de Hyperdrive, no en el repositorio.
+  // En local (`wrangler dev` y pruebas) se usa el Postgres de docker-compose.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "0ff5d663f391438e910b4e16b44f14e5",
+      "localConnectionString": "postgresql://xdtech:xdtech@localhost:5432/xdtech",
+    },
+  ],
 }

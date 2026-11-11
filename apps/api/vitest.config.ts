@@ -24,7 +24,9 @@ export default defineConfig({
         test: { name: 'unit', include: ['src/**/*.test.ts'], environment: 'node' },
       },
       {
-        // Extremo a extremo dentro del runtime de Workers (workerd).
+        // Extremo a extremo dentro del runtime de Workers (workerd), sin base de datos.
+        // Lo que toca Postgres va en "integracion": el cargador CommonJS de este plugin
+        // no aplica la condición "workerd" al require('pg-cloudflare') de `pg`.
         plugins: [
           decoradores(),
           cloudflareTest({
@@ -48,13 +50,15 @@ export default defineConfig({
         test: { name: 'workers', include: ['test/**/*.e2e.test.ts'] },
       },
       {
-        // Integración contra Postgres real (Docker en local, servicio en CI).
-        plugins: [decoradores()],
+        // Integración: Postgres real (Docker en local, servicio en CI) y el Worker
+        // empaquetado como en producción (createTestHarness de Wrangler).
         test: {
           name: 'integracion',
           include: ['test/**/*.int.test.ts'],
           environment: 'node',
           fileParallelism: false,
+          testTimeout: 30_000,
+          hookTimeout: 120_000,
         },
       },
     ],

@@ -24,16 +24,16 @@
 
 ## 3. Base de datos (Neon por Hyperdrive)
 
-- [ ] 3.1 Crear `docker-compose.yml` con Postgres local; se verifica con `docker compose up -d` y el servicio en `healthy`
-- [ ] 3.2 Crear la configuración de Hyperdrive con `wrangler hyperdrive create` (cadena directa de Neon, **caché desactivado**), agregar el binding `HYPERDRIVE` a `wrangler.jsonc` con `localConnectionString` hacia el Postgres de Docker, y configurar Prisma con `@prisma/adapter-pg` sobre `env.HYPERDRIVE.connectionString` (D4); se verifica con `wrangler hyperdrive get` mostrando el caché desactivado y un `SELECT 1` desde `wrangler dev`
-- [ ] 3.3 Escribir `schema.prisma` con el modelo completo y las restricciones de D11 (spec `esquema-datos`), sin `tokens_recuperacion`, y generar la migración inicial; se verifica con `prisma migrate dev` aplicándose en local
-- [ ] 3.4 Escribir pruebas de integración de las restricciones: correo único sin distinguir mayúsculas, stock no negativo, un stock por producto, clave de idempotencia única, enums inválidos rechazados y `carrito_items` con exactamente un destino; se verifica con `pnpm --filter api test:int` en verde
+- [x] 3.1 Crear `docker-compose.yml` con Postgres local; se verifica con `docker compose up -d` y el servicio en `healthy`
+- [x] 3.2 Crear la configuración de Hyperdrive con `wrangler hyperdrive create` (cadena directa de Neon, **caché desactivado**), agregar el binding `HYPERDRIVE` a `wrangler.jsonc` con `localConnectionString` hacia el Postgres de Docker, y configurar Prisma con `@prisma/adapter-pg` sobre `env.HYPERDRIVE.connectionString` (D4); se verifica con `wrangler hyperdrive get` mostrando el caché desactivado y un `SELECT 1` desde `wrangler dev`
+- [x] 3.3 Escribir `schema.prisma` con el modelo completo y las restricciones de D11 (spec `esquema-datos`), sin `tokens_recuperacion`, y generar la migración inicial; se verifica con `prisma migrate dev` aplicándose en local
+- [x] 3.4 Escribir pruebas de integración de las restricciones: correo único sin distinguir mayúsculas, stock no negativo, un stock por producto, clave de idempotencia única, enums inválidos rechazados y `carrito_items` con exactamente un destino; se verifica con `pnpm --filter api test:int` en verde
 - [ ] 3.5 Aplicar la migración en Neon con `prisma migrate deploy` y la cadena directa (`DIRECT_URL`); se verifica con `prisma migrate status` contra Neon sin migraciones pendientes
 
 ## 4. Salud
 
-- [ ] 4.1 Definir el puerto `DisponibleService` con `ping()`, implementado sobre el método `consultar` del Durable Object `Inventario` (D6); se verifica con una prueba en el pool de Workers en la que `ping()` responde
-- [ ] 4.2 Implementar `GET /health/live` sin dependencias y `GET /health/ready` con un tiempo de espera por dependencia y 503 que indica la dependencia caída sin exponer detalles (spec `salud-api`); se verifica con pruebas e2e de los cuatro escenarios (Postgres apagado con `docker compose stop`; almacén caído simulado con un stub del binding que falla)
+- [x] 4.1 Definir el puerto `DisponibleService` con `ping()`, implementado sobre el método `consultar` del Durable Object `Inventario` (D6); se verifica con una prueba en el pool de Workers en la que `ping()` responde
+- [x] 4.2 Implementar `GET /health/live` sin dependencias y `GET /health/ready` con un tiempo de espera por dependencia y 503 que indica la dependencia caída sin exponer detalles (spec `salud-api`); se verifica con pruebas e2e de los cuatro escenarios (Postgres apagado con `docker compose stop`; almacén caído simulado con un stub del binding que falla)
 
 ## 5. Frontend
 
@@ -43,7 +43,7 @@
 ## 6. Entrega continua y dominios
 
 - [ ] 6.1 Crear `.env.example` y `apps/api/.dev.vars.example` con todas las variables (incluidas `COOKIE_DOMAIN`, `FRONTEND_ORIGIN`, `SESSION_TTL_DAYS`, `HEALTH_TIMEOUT_MS`, `DIRECT_URL` y la cadena local de Hyperdrive); se verifica clonando en limpio, copiando los ejemplos y levantando `wrangler dev` sin variables faltantes
-- [ ] 6.2 Crear `.github/workflows/ci.yml` con el job `verificar` (install, lint, unit, integración con el servicio Postgres, build) en cada push y PR; se verifica con un push que deja la ejecución en verde y otro con una prueba rota que la deja en rojo
+- [x] 6.2 Crear `.github/workflows/ci.yml` con el job `verificar` (install, lint, unit, integración con el servicio Postgres, build) en cada push y PR; se verifica con un push que deja la ejecución en verde y otro con una prueba rota que la deja en rojo
 - [ ] 6.3 Crear un API token de Cloudflare para la CI y agregar el job `desplegar` solo en `main`: migraciones con `NEON_DIRECT_URL` y después `wrangler deploy` de la API y del frontend, con los secretos `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` y `NEON_DIRECT_URL` en GitHub; se verifica con una fusión en `main` que despliega, y con un push a otra rama que no despliega
 - [ ] 6.4 Confirmar que el Worker no necesita secretos de base de datos (la cadena vive en la configuración de Hyperdrive) y cargar con `wrangler secret put` solo los que sí hagan falta; se verifica con `wrangler secret list` y con una búsqueda en el repositorio que no encuentra ninguna cadena de conexión
 - [ ] 6.5 Configurar los Custom Domains `api.xdtech.store` y el del frontend (P3); se verifica con `curl -I https://api.xdtech.store/health/live` devolviendo 200 con un certificado válido y el frontend cargando por HTTPS

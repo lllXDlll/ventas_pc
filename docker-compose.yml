@@ -1,0 +1,22 @@
+# Servicios locales para desarrollo, pruebas de integración y de carga.
+# Con la opción B (Durable Object) no hace falta Redis: el almacén corre dentro de `wrangler dev`.
+# Credenciales solo de desarrollo local (no son secretos).
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: xdtech
+      POSTGRES_PASSWORD: xdtech
+      POSTGRES_DB: xdtech
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U xdtech -d xdtech']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-datos:

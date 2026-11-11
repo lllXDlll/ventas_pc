@@ -63,8 +63,11 @@ jobs:
       - name: Pruebas unitarias y e2e en workerd
         run: pnpm --filter api test
 
-      - name: Pruebas de integración (Postgres)
-        run: pnpm --filter api test:int --passWithNoTests
+      - name: Migraciones en el Postgres de la CI
+        run: pnpm --filter api migrate:deploy
+
+      - name: Pruebas de integración (Postgres y Worker empaquetado)
+        run: pnpm --filter api test:int
 
       - name: Build de la API (bundle de Wrangler)
         run: pnpm --filter api build
