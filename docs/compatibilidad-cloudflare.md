@@ -107,3 +107,15 @@ La prueba usó un Worker temporal (`xdtech-prueba-r2`, en `workers.dev`, protegi
 - **Coste de la subida:** la subida de 2 MB suma ~5 ms de CPU a lo que ya cuesta NestJS. Se espera una subida completa de ~15 ms, en el orden de `GET /productos`. Es una operación esporádica del administrador.
 - **Lectura:** en stream no consume CPU apreciable, así que servir la imagen desde la API (design D9) es viable.
 - **Plan B (no aplicado):** sin R2, no habría imágenes. Los productos mostrarían el icono de su categoría y las imágenes no se guardarían en Postgres.
+
+## Mediciones del Sprint 1.5 (tarea 2.5, 2026-11-11)
+
+CPU por petición en producción (`wrangler tail`), justo después del despliegue del Sprint 1.5. Se hicieron 8 rondas de 5 peticiones: listado sin filtros, por categoría con socket y orden, por texto con dos marcas, facetas globales y facetas por categoría.
+
+| Ruta | Mediana (rango) | Trabajo por petición |
+|---|---|---|
+| `GET /productos` (con y sin filtros) | 14 ms (9–50) | 2 consultas (listado + total); los filtros nuevos van en la misma consulta |
+| `GET /facetas` | 12 ms (6–36; 174 en la primera, en frío) | 3 consultas en una conexión (marcas, sockets con `$queryRaw`, rango de precio) |
+
+- Los filtros por marca, socket, texto y orden no suben la CPU del listado. En el Sprint 1 la mediana era de 15 ms.
+- Las facetas cuestan lo mismo que el listado. El frontend las guarda 5 minutos en caché (`staleTime`), así que no se piden en cada navegación.

@@ -21,6 +21,10 @@
   // Custom Domain de la API (tarea 6.5). La cookie de sesión usa Domain=.xdtech.store.
   "workers_dev": true,
   "routes": [{ "pattern": "api.xdtech.store", "custom_domain": true }],
+  // Smart Placement (tarea 10.4 del Sprint 1.5): cada petición hace varias consultas a Neon por
+  // Hyperdrive; ejecutar el Worker cerca de la base reduce la latencia de cada viaje. No cambia
+  // la consistencia (el stock sigue sin caché). Los Durable Objects no se ven afectados.
+  "placement": { "mode": "smart" },
   "observability": {
     "enabled": true,
   },
