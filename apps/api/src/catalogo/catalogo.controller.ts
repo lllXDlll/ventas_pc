@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nes
 import { Roles } from '../auth/guardas';
 import {
   CatalogoService,
+  type Facetas,
   type Pagina,
   type ProductoAdmin,
   type ProductoPublico,
@@ -10,6 +11,7 @@ import {
   ActualizarProductoDto,
   ActualizarStockDto,
   CrearProductoDto,
+  FacetasDto,
   FiltrosCatalogoDto,
   PaginaAdminDto,
 } from './dto';
@@ -29,6 +31,12 @@ export class CatalogoController {
     return this.catalogo.listar(filtros);
   }
 
+  /** Ruta propia para no chocar con productos/:id (design D7). */
+  @Get('facetas')
+  facetas(@Query() consulta: FacetasDto): Promise<Facetas> {
+    return this.catalogo.facetas(consulta.categoria);
+  }
+
   @Get('productos/:id')
   detalle(@Param('id') id: string): Promise<ProductoPublico> {
     return this.catalogo.detalle(id);
@@ -43,7 +51,7 @@ export class AdminCatalogoController {
 
   @Get('productos')
   listar(@Query() consulta: PaginaAdminDto): Promise<Pagina<ProductoAdmin>> {
-    return this.catalogo.listarAdmin(consulta.pagina);
+    return this.catalogo.listarAdmin(consulta);
   }
 
   @Post('productos')

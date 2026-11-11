@@ -63,6 +63,37 @@ describe('semillas', () => {
     expect(Number(rows[0]?.n)).toBe(ids.length);
   });
 
+  it('catálogo: completa la marca de los productos que no la tenían, sin pisar las editadas', async () => {
+    await semillaCategorias(cliente);
+    await semillaCatalogo(cliente);
+    const ids = CATALOGO_EJEMPLO.map((p) => p.id);
+    const [vaciado, editado] = ids;
+    const { rows: antes } = await cliente.query<{ marca: string }>(
+      'SELECT marca FROM productos WHERE id = $1',
+      [editado],
+    );
+    try {
+      // Como en una base del Sprint 1: sin marca. Y uno editado por un ADMIN.
+      await cliente.query('UPDATE productos SET marca = NULL WHERE id = $1', [vaciado]);
+      await cliente.query(`UPDATE productos SET marca = 'Editada' WHERE id = $1`, [editado]);
+      await semillaCatalogo(cliente);
+      const { rows } = await cliente.query<{ id: string; marca: string | null }>(
+        'SELECT id, marca FROM productos WHERE id = ANY($1)',
+        [ids],
+      );
+      expect(rows).toHaveLength(ids.length);
+      expect(rows.filter((r) => !r.marca)).toEqual([]);
+      const marca = (i: string | undefined) => rows.find((r) => r.id === i)?.marca;
+      expect(marca(vaciado)).toBe(CATALOGO_EJEMPLO[0]?.marca);
+      expect(marca(editado)).toBe('Editada');
+    } finally {
+      await cliente.query('UPDATE productos SET marca = $2 WHERE id = $1', [
+        editado,
+        antes[0]?.marca ?? CATALOGO_EJEMPLO[1]?.marca,
+      ]);
+    }
+  });
+
   it('el catálogo de ejemplo cubre lo que pide la spec y tiene atributos válidos', () => {
     for (const p of CATALOGO_EJEMPLO) {
       expect(validarAtributos(p.categoria, p.atributos), p.nombre).toBeNull();
@@ -77,6 +108,8 @@ describe('semillas', () => {
     expect(distintos('FUENTE', 'potenciaEntregadaW')).toBeGreaterThanOrEqual(2);
     expect(distintos('GABINETE', 'factoresFormaSoportados')).toBeGreaterThanOrEqual(2);
     expect(de('EQUIPO_ARMADO').length).toBeGreaterThanOrEqual(1);
+    expect(CATALOGO_EJEMPLO.every((p) => p.marca.trim().length > 0)).toBe(true);
+    expect(new Set(de('PROCESADOR').map((p) => p.marca)).size).toBeGreaterThanOrEqual(2);
   });
 
   it('administrador: idempotente, rol ADMIN y hash que la verificación acepta', async () => {

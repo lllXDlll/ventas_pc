@@ -48,6 +48,9 @@
     ],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Inventario", "Limites"] }],
+  // Imágenes de producto (design D9 del Sprint 1.5). En local (wrangler dev, pruebas) R2 se
+  // simula; el bucket de producción se creó con `wrangler r2 bucket create xdtech-imagenes`.
+  "r2_buckets": [{ "binding": "IMAGENES", "bucket_name": "xdtech-imagenes" }],
   // Neon a través de Hyperdrive, con caché de consultas DESACTIVADO (design.md D4).
   // La cadena de Neon vive en la configuración de Hyperdrive, no en el repositorio.
   // En local (`wrangler dev` y pruebas) se usa el Postgres de docker-compose.

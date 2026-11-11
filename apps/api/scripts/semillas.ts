@@ -37,6 +37,7 @@ export async function semillaCategorias(cliente: Cliente): Promise<number> {
 export interface ProductoSemilla {
   id: string;
   nombre: string;
+  marca: string;
   categoria: CodigoCategoria;
   precio: string;
   stock: number;
@@ -51,6 +52,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(1),
     nombre: 'AMD Ryzen 5 7600',
+    marca: 'AMD',
     categoria: 'PROCESADOR',
     precio: '829.00',
     stock: 12,
@@ -59,6 +61,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(2),
     nombre: 'AMD Ryzen 7 7800X3D',
+    marca: 'AMD',
     categoria: 'PROCESADOR',
     precio: '1749.00',
     stock: 5,
@@ -67,6 +70,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(3),
     nombre: 'Intel Core i5-14400F',
+    marca: 'Intel',
     categoria: 'PROCESADOR',
     precio: '749.00',
     stock: 15,
@@ -75,6 +79,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(4),
     nombre: 'Intel Core i7-14700K',
+    marca: 'Intel',
     categoria: 'PROCESADOR',
     precio: '1599.00',
     stock: 0,
@@ -84,6 +89,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(10),
     nombre: 'MSI B650 Gaming Plus WiFi',
+    marca: 'MSI',
     categoria: 'PLACA_MADRE',
     precio: '799.00',
     stock: 8,
@@ -98,6 +104,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(11),
     nombre: 'ASUS Prime B760M-A D4',
+    marca: 'ASUS',
     categoria: 'PLACA_MADRE',
     precio: '519.00',
     stock: 10,
@@ -112,6 +119,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(12),
     nombre: 'Gigabyte Z790 Aorus Elite AX',
+    marca: 'Gigabyte',
     categoria: 'PLACA_MADRE',
     precio: '1149.00',
     stock: 4,
@@ -127,6 +135,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(20),
     nombre: 'Kingston Fury Beast 32 GB (2x16) DDR5-6000',
+    marca: 'Kingston',
     categoria: 'RAM',
     precio: '429.00',
     stock: 20,
@@ -135,6 +144,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(21),
     nombre: 'Corsair Vengeance LPX 16 GB (2x8) DDR4-3200',
+    marca: 'Corsair',
     categoria: 'RAM',
     precio: '179.00',
     stock: 25,
@@ -144,6 +154,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(30),
     nombre: 'NVIDIA GeForce RTX 4060 8 GB',
+    marca: 'NVIDIA',
     categoria: 'TARJETA_GRAFICA',
     precio: '1299.00',
     stock: 6,
@@ -152,6 +163,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(31),
     nombre: 'AMD Radeon RX 7800 XT 16 GB',
+    marca: 'AMD',
     categoria: 'TARJETA_GRAFICA',
     precio: '2199.00',
     stock: 3,
@@ -161,6 +173,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(40),
     nombre: 'EVGA 550 BR 550 W',
+    marca: 'EVGA',
     categoria: 'FUENTE',
     precio: '199.00',
     stock: 9,
@@ -169,6 +182,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(41),
     nombre: 'Corsair RM750e 750 W',
+    marca: 'Corsair',
     categoria: 'FUENTE',
     precio: '429.00',
     stock: 7,
@@ -177,6 +191,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(42),
     nombre: 'Seasonic Focus GX-1000 1000 W',
+    marca: 'Seasonic',
     categoria: 'FUENTE',
     precio: '729.00',
     stock: 2,
@@ -186,6 +201,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(50),
     nombre: 'Lian Li Lancool 216 (ATX)',
+    marca: 'Lian Li',
     categoria: 'GABINETE',
     precio: '389.00',
     stock: 5,
@@ -198,6 +214,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(51),
     nombre: 'Cooler Master Q300L (mATX)',
+    marca: 'Cooler Master',
     categoria: 'GABINETE',
     precio: '179.00',
     stock: 11,
@@ -211,6 +228,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(60),
     nombre: 'Samsung 990 EVO 1 TB NVMe',
+    marca: 'Samsung',
     categoria: 'ALMACENAMIENTO',
     precio: '339.00',
     stock: 18,
@@ -219,6 +237,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(61),
     nombre: 'Crucial MX500 1 TB SATA',
+    marca: 'Crucial',
     categoria: 'ALMACENAMIENTO',
     precio: '249.00',
     stock: 14,
@@ -228,6 +247,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
   {
     id: id(70),
     nombre: 'PC Gamer AM5: Ryzen 5 7600 + RTX 4060',
+    marca: 'XDTech',
     categoria: 'EQUIPO_ARMADO',
     precio: '4299.00',
     stock: 3,
@@ -242,10 +262,12 @@ export async function semillaCatalogo(cliente: Cliente): Promise<number> {
     const error = validarAtributos(p.categoria, p.atributos);
     if (error) throw new Error(`semilla inválida (${p.nombre}): ${error}`);
     await cliente.query(
-      `INSERT INTO productos (id, nombre, categoria_id, tipo, precio, atributos, actualizado_en)
-       SELECT $1, $2, c.id, $4::tipo_producto, $5, $6::jsonb, now()
+      // Si el producto ya existe, solo se completa la marca que falte (Sprint 1.5): no se
+      // pisan los cambios hechos desde el panel.
+      `INSERT INTO productos (id, nombre, marca, categoria_id, tipo, precio, atributos, actualizado_en)
+       SELECT $1, $2, $7, c.id, $4::tipo_producto, $5, $6::jsonb, now()
          FROM categorias c WHERE c.codigo = $3
-       ON CONFLICT (id) DO NOTHING`,
+       ON CONFLICT (id) DO UPDATE SET marca = COALESCE(productos.marca, excluded.marca)`,
       [
         p.id,
         p.nombre,
@@ -253,6 +275,7 @@ export async function semillaCatalogo(cliente: Cliente): Promise<number> {
         tipoDeCategoria(p.categoria),
         p.precio,
         JSON.stringify(p.atributos),
+        p.marca,
       ],
     );
     await cliente.query(

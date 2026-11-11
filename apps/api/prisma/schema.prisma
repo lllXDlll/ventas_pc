@@ -130,6 +130,8 @@ model Categoria {
 model Producto {
   id            String       @id @default(uuid(7)) @db.Uuid
   nombre        String
+  /// Obligatoria al crear desde la API; nula solo en filas previas al Sprint 1.5.
+  marca         String?
   categoriaId   String       @map("categoria_id") @db.Uuid
   tipo          TipoProducto
   /// CHECK precio >= 0 (migración).
@@ -137,6 +139,8 @@ model Producto {
   activo        Boolean      @default(true)
   /// Atributos técnicos: socket, tipoRam, potenciaConsumidaW, dimensiones, factorForma, etc.
   atributos     Json         @default("{}") @db.JsonB
+  /// Clave del objeto en R2 (productos/<id>/<uuid>.<ext>); nula si no tiene imagen.
+  imagenClave   String?      @map("imagen_clave")
   creadoEn      DateTime     @default(now()) @map("creado_en") @db.Timestamptz(3)
   actualizadoEn DateTime     @updatedAt @map("actualizado_en") @db.Timestamptz(3)
 

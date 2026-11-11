@@ -2,6 +2,8 @@
 // Se prueban directamente en Postgres: es la base la que debe rechazar los datos.
 // Cada caso corre en una transacción que se revierte, así la base queda limpia.
 import { randomUUID } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import pg from 'pg';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -236,5 +238,43 @@ describe('carrito_items', () => {
         [randomUUID(), carrito, producto],
       ),
     ).toBe(VIOLA_CHECK);
+  });
+});
+
+describe('productos: marca e imagen (Sprint 1.5)', () => {
+  const MIGRACION = readdirSync(join(__dirname, '../prisma/migrations')).find((d) =>
+    d.endsWith('_productos_marca_imagen'),
+  );
+
+  it('tiene marca y clave de imagen opcionales y ninguna columna binaria', async () => {
+    const { rows } = await cliente.query<{
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+    }>(
+      `SELECT column_name, data_type, is_nullable FROM information_schema.columns
+        WHERE table_name = 'productos' ORDER BY column_name`,
+    );
+    const por = Object.fromEntries(rows.map((r) => [r.column_name, r]));
+    expect(por.marca).toMatchObject({ data_type: 'text', is_nullable: 'YES' });
+    expect(por.imagen_clave).toMatchObject({ data_type: 'text', is_nullable: 'YES' });
+    expect(rows.filter((r) => r.data_type === 'bytea')).toEqual([]);
+  });
+
+  it('la migración conserva los productos existentes, con marca e imagen vacías', async () => {
+    expect(MIGRACION).toBeDefined();
+    const sql = readFileSync(
+      join(__dirname, '../prisma/migrations', MIGRACION ?? '', 'migration.sql'),
+      'utf8',
+    );
+    // Estado del Sprint 1: sin las columnas nuevas y con un producto cargado.
+    await cliente.query('ALTER TABLE productos DROP COLUMN marca, DROP COLUMN imagen_clave');
+    const producto = await crearProducto();
+    await cliente.query(sql);
+    const { rows } = await cliente.query(
+      'SELECT nombre, marca, imagen_clave FROM productos WHERE id = $1',
+      [producto],
+    );
+    expect(rows).toEqual([{ nombre: 'Producto', marca: null, imagen_clave: null }]);
   });
 });

@@ -65,6 +65,9 @@ function enviar(metodo: string, ruta: string, cuerpo?: unknown, cookie = admin) 
 
 interface Producto {
   id: string;
+  nombre: string;
+  marca: string | null;
+  imagenUrl: string | null;
   precio: string;
   disponible: number;
   agotado: boolean;
@@ -77,6 +80,7 @@ let precioSiguiente = 77_000;
 async function crear(extra: Record<string, unknown> = {}): Promise<Producto> {
   const res = await enviar('POST', '/admin/productos', {
     nombre: `Fuente de prueba ${randomUUID()}`,
+    marca: 'Marca de prueba',
     categoria: 'FUENTE',
     tipo: 'COMPONENTE',
     precio: `${precioSiguiente++}.50`,
@@ -109,6 +113,7 @@ describe('alta y actualización (ADMIN)', () => {
   it('crea un equipo armado como producto propio con su stock', async () => {
     const res = await enviar('POST', '/admin/productos', {
       nombre: `Equipo de prueba ${randomUUID()}`,
+      marca: 'Marca de prueba',
       categoria: 'EQUIPO_ARMADO',
       tipo: 'EQUIPO',
       precio: '77999.00',
@@ -124,6 +129,7 @@ describe('alta y actualización (ADMIN)', () => {
   it('rechaza un tipo incoherente con la categoría', async () => {
     const res = await enviar('POST', '/admin/productos', {
       nombre: 'RAM rara',
+      marca: 'Marca de prueba',
       categoria: 'RAM',
       tipo: 'EQUIPO',
       precio: '1',
@@ -136,6 +142,7 @@ describe('alta y actualización (ADMIN)', () => {
   it('rechaza atributos inválidos nombrando el atributo', async () => {
     const sinSocket = await enviar('POST', '/admin/productos', {
       nombre: 'CPU sin socket',
+      marca: 'Marca de prueba',
       categoria: 'PROCESADOR',
       tipo: 'COMPONENTE',
       precio: '1',
@@ -146,6 +153,7 @@ describe('alta y actualización (ADMIN)', () => {
     expect(((await sinSocket.json()) as { mensaje: string }).mensaje).toContain('socket');
     const tipoMalo = await enviar('POST', '/admin/productos', {
       nombre: 'Fuente rara',
+      marca: 'Marca de prueba',
       categoria: 'FUENTE',
       tipo: 'COMPONENTE',
       precio: '1',
@@ -331,5 +339,157 @@ describe('rutas administrativas', () => {
     );
     const despues = await bd.query('SELECT count(*) AS n FROM productos');
     expect(despues.rows[0].n).toBe(antes.rows[0].n);
+  });
+});
+
+// Sprint 1.5: marca, filtros por marca, socket y texto, orden, facetas y búsqueda admin.
+// Marcas y sockets únicos por ejecución para no depender del catálogo de ejemplo.
+const sufijo = randomUUID().slice(0, 8);
+const MARCA_A = `MarcaA-${sufijo}`;
+const MARCA_B = `MarcaB-${sufijo}`;
+const SOCKET = `SK-${sufijo}`;
+
+function procesador(marca: string, extra: Record<string, unknown> = {}) {
+  return crear({
+    nombre: `Procesador ${marca} ${randomUUID().slice(0, 6)}`,
+    marca,
+    categoria: 'PROCESADOR',
+    atributos: { socket: SOCKET, potenciaConsumidaW: 65 },
+    ...extra,
+  });
+}
+const lista = async (q: string) =>
+  (await (await servidor.fetch(`/productos?${q}`)).json()) as {
+    productos: Producto[];
+    total: number;
+  };
+
+describe('marca (Sprint 1.5)', () => {
+  it('el alta exige marca y la respuesta la incluye, con imagenUrl nula', async () => {
+    const p = await crear({ marca: '  Corsair  ' });
+    expect(p).toMatchObject({ marca: 'Corsair', imagenUrl: null });
+    for (const marca of [undefined, '', '   ']) {
+      const res = await enviar('POST', '/admin/productos', {
+        nombre: 'Sin marca',
+        categoria: 'FUENTE',
+        tipo: 'COMPONENTE',
+        precio: '10.00',
+        stockInicial: 1,
+        atributos: { potenciaEntregadaW: 500 },
+        ...(marca === undefined ? {} : { marca }),
+      });
+      expect(res.status, String(marca)).toBe(400);
+      expect(((await res.json()) as { mensaje: string }).mensaje).toMatch(/marca/i);
+    }
+  });
+
+  it('PATCH cambia la marca: el detalle la refleja y el filtro anterior deja de incluirlo', async () => {
+    const p = await procesador(MARCA_A);
+    const res = await enviar('PATCH', `/admin/productos/${p.id}`, { marca: `Otra-${sufijo}` });
+    expect(res.status).toBe(200);
+    const detalle = (await (await servidor.fetch(`/productos/${p.id}`)).json()) as Producto;
+    expect(detalle.marca).toBe(`Otra-${sufijo}`);
+    const ids = (await lista(`marca=${MARCA_A}`)).productos.map((x) => x.id);
+    expect(ids).not.toContain(p.id);
+  });
+});
+
+describe('filtros, búsqueda y orden (Sprint 1.5)', () => {
+  let a1: Producto, a2: Producto, b1: Producto;
+  beforeAll(async () => {
+    a1 = await procesador(MARCA_A);
+    a2 = await procesador(MARCA_A, {
+      atributos: { socket: `${SOCKET}-2`, potenciaConsumidaW: 65 },
+    });
+    b1 = await procesador(MARCA_B);
+  });
+
+  it('filtra por marca (sin distinguir mayúsculas) y por socket', async () => {
+    const r = await lista(`categoria=PROCESADOR&marca=${MARCA_A.toLowerCase()}&socket=${SOCKET}`);
+    expect(r.productos.map((x) => x.id)).toEqual([a1.id]);
+  });
+
+  it('admite varias marcas separadas por coma', async () => {
+    const r = await lista(`marca=${MARCA_A},${MARCA_B}`);
+    expect(r.productos.map((x) => x.id).sort()).toEqual([a1.id, a2.id, b1.id].sort());
+  });
+
+  it('busca por texto en el nombre o la marca', async () => {
+    const porMarca = await lista(`q=${MARCA_B.toUpperCase()}`);
+    expect(porMarca.productos.map((x) => x.id)).toEqual([b1.id]);
+    const porNombre = await lista(`q=${encodeURIComponent(a1.nombre.slice(-6))}`);
+    expect(porNombre.productos.map((x) => x.id)).toContain(a1.id);
+  });
+
+  it('ordena por precio sin cambiar el total, con paginación estable', async () => {
+    const filtro = `marca=${MARCA_A},${MARCA_B}`;
+    const asc = await lista(`${filtro}&orden=precio_asc`);
+    const desc = await lista(`${filtro}&orden=precio_desc`);
+    const nombre = await lista(filtro);
+    const precios = (r: typeof asc) => r.productos.map((x) => Number(x.precio));
+    expect(precios(asc)).toEqual([...precios(asc)].sort((x, y) => x - y));
+    expect(precios(desc)).toEqual([...precios(asc)].reverse());
+    expect(new Set([asc.total, desc.total, nombre.total])).toEqual(new Set([3]));
+    const paginas = [1, 2, 3].map((n) =>
+      lista(`${filtro}&orden=precio_asc&porPagina=1&pagina=${n}`),
+    );
+    const ids = (await Promise.all(paginas)).flatMap((r) => r.productos.map((x) => x.id));
+    expect(ids).toEqual(asc.productos.map((x) => x.id));
+  });
+
+  it('responde 400 a filtros nuevos inválidos', async () => {
+    const muchas = Array.from({ length: 11 }, (_, i) => `m${i}`).join(',');
+    for (const q of ['orden=barato', 'q=a', `marca=${muchas}`, `socket=${'x'.repeat(31)}`]) {
+      expect((await servidor.fetch(`/productos?${q}`)).status, q).toBe(400);
+    }
+  });
+});
+
+describe('facetas (Sprint 1.5)', () => {
+  it('cuenta marcas y sockets con disponible, da el rango de precio y omite los agotados', async () => {
+    const p1 = await procesador(`F1-${sufijo}`);
+    const p2 = await procesador(`F1-${sufijo}`);
+    const unico = await procesador(`F2-${sufijo}`);
+    const facetas = async () =>
+      (await (await servidor.fetch('/facetas?categoria=PROCESADOR')).json()) as {
+        marcas: { valor: string; cantidad: number }[];
+        sockets: { valor: string; cantidad: number }[];
+        precio: { min: string; max: string };
+      };
+    let f = await facetas();
+    expect(f.marcas).toContainEqual({ valor: `F1-${sufijo}`, cantidad: 2 });
+    expect(f.marcas).toContainEqual({ valor: `F2-${sufijo}`, cantidad: 1 });
+    expect(f.sockets.find((s) => s.valor === SOCKET)?.cantidad).toBeGreaterThanOrEqual(4);
+    expect(Number(f.precio.max)).toBeGreaterThanOrEqual(Number(p2.precio));
+    expect(Number(f.precio.min)).toBeLessThanOrEqual(Number(p1.precio));
+
+    await enviar('PATCH', `/admin/stock/${unico.id}`, { cantidad: 0, version: 0 });
+    f = await facetas();
+    expect(f.marcas.map((m) => m.valor)).not.toContain(`F2-${sufijo}`);
+
+    const otra = (await (await servidor.fetch('/facetas?categoria=RAM')).json()) as {
+      marcas: { valor: string }[];
+    };
+    expect(otra.marcas.map((m) => m.valor)).not.toContain(`F1-${sufijo}`);
+    expect((await servidor.fetch('/facetas?categoria=NADA')).status).toBe(400);
+    expect((await servidor.fetch('/facetas')).status).toBe(200);
+  });
+});
+
+describe('lista administrativa (Sprint 1.5)', () => {
+  it('busca por texto y filtra por categoría, incluidos inactivos', async () => {
+    const p = await procesador(`Inactiva-${sufijo}`);
+    await enviar('PATCH', `/admin/productos/${p.id}`, { activo: false });
+    const res = await enviar('GET', `/admin/productos?q=Inactiva-${sufijo}&categoria=PROCESADOR`);
+    expect(res.status).toBe(200);
+    const cuerpo = (await res.json()) as {
+      productos: (Producto & { activo: boolean })[];
+      total: number;
+    };
+    expect(cuerpo.total).toBe(1);
+    expect(cuerpo.productos[0]).toMatchObject({ id: p.id, activo: false });
+    const otra = await enviar('GET', `/admin/productos?q=Inactiva-${sufijo}&categoria=RAM`);
+    expect(((await otra.json()) as { total: number }).total).toBe(0);
+    expect((await enviar('GET', '/admin/productos?q=x')).status).toBe(400);
   });
 });

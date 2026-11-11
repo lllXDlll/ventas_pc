@@ -27,6 +27,12 @@ export class CrearProductoDto {
   @MaxLength(200, { message: 'El nombre no puede tener más de 200 caracteres.' })
   nombre: string;
 
+  @Transform(recortar)
+  @IsString({ message: 'La marca es obligatoria.' })
+  @MinLength(1, { message: 'La marca es obligatoria.' })
+  @MaxLength(60, { message: 'La marca no puede tener más de 60 caracteres.' })
+  marca: string;
+
   @IsIn(CATEGORIAS, { message: `La categoría debe ser una de: ${CATEGORIAS.join(', ')}.` })
   categoria: CodigoCategoria;
 
@@ -54,6 +60,13 @@ export class ActualizarProductoDto {
   nombre?: string;
 
   @IsOptional()
+  @Transform(recortar)
+  @IsString()
+  @MinLength(1, { message: 'La marca no puede quedar vacía.' })
+  @MaxLength(60, { message: 'La marca no puede tener más de 60 caracteres.' })
+  marca?: string;
+
+  @IsOptional()
   @Transform(aTextoPrecio)
   @Matches(PRECIO, { message: 'El precio debe ser un número no negativo con hasta 2 decimales.' })
   precio?: string;
@@ -79,6 +92,24 @@ export class ActualizarStockDto {
 
 const ENTERO = /^\d+$/;
 
+export const ORDENES = ['nombre', 'precio_asc', 'precio_desc'] as const;
+export type Orden = (typeof ORDENES)[number];
+
+/** Marcas del filtro: separadas por coma, sin vacías; null si hay más de 10 o alguna es larga. */
+export function leerMarcas(texto: string | undefined): string[] | null {
+  if (texto === undefined) return [];
+  const marcas = [
+    ...new Set(
+      texto
+        .split(',')
+        .map((m) => m.trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (marcas.length > 10 || marcas.some((m) => m.length > 60)) return null;
+  return marcas;
+}
+
 /** Filtros del catálogo público: llegan como texto en la query. */
 export class FiltrosCatalogoDto {
   @IsOptional()
@@ -93,6 +124,30 @@ export class FiltrosCatalogoDto {
   @Matches(PRECIO, { message: 'precioMax debe ser un número no negativo.' })
   precioMax?: string;
 
+  /** Una o varias marcas separadas por coma (Sprint 1.5, design D6). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(610, { message: 'Demasiadas marcas en el filtro.' })
+  marca?: string;
+
+  @IsOptional()
+  @Transform(recortar)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(30, { message: 'socket no puede tener más de 30 caracteres.' })
+  socket?: string;
+
+  @IsOptional()
+  @Transform(recortar)
+  @IsString()
+  @MinLength(2, { message: 'La búsqueda debe tener al menos 2 caracteres.' })
+  @MaxLength(60, { message: 'La búsqueda no puede tener más de 60 caracteres.' })
+  q?: string;
+
+  @IsOptional()
+  @IsIn(ORDENES, { message: `orden debe ser uno de: ${ORDENES.join(', ')}.` })
+  orden?: Orden;
+
   @IsOptional()
   @Matches(ENTERO, { message: 'pagina debe ser un entero positivo.' })
   pagina?: string;
@@ -102,10 +157,28 @@ export class FiltrosCatalogoDto {
   porPagina?: string;
 }
 
+/** Facetas del catálogo público (design D7): opcionalmente de una categoría. */
+export class FacetasDto {
+  @IsOptional()
+  @IsIn(CATEGORIAS, { message: `La categoría debe ser una de: ${CATEGORIAS.join(', ')}.` })
+  categoria?: CodigoCategoria;
+}
+
 export class PaginaAdminDto {
   @IsOptional()
   @Matches(ENTERO, { message: 'pagina debe ser un entero positivo.' })
   pagina?: string;
+
+  @IsOptional()
+  @Transform(recortar)
+  @IsString()
+  @MinLength(2, { message: 'La búsqueda debe tener al menos 2 caracteres.' })
+  @MaxLength(60, { message: 'La búsqueda no puede tener más de 60 caracteres.' })
+  q?: string;
+
+  @IsOptional()
+  @IsIn(CATEGORIAS, { message: `La categoría debe ser una de: ${CATEGORIAS.join(', ')}.` })
+  categoria?: CodigoCategoria;
 }
 
 export const POR_PAGINA = { porDefecto: 20, maximo: 100 } as const;

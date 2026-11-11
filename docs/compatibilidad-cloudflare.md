@@ -91,3 +91,19 @@ CPU por petición en producción (`wrangler tail`), medida con tres cuentas de p
 - **Las rutas con consultas superan los 10 ms de CPU del plan gratuito.** En el Sprint 0 y en estas mediciones, ninguna petición fue cortada por CPU: el plan gratuito no corta al primer exceso. Si en la carga del Sprint 3 aparecen errores `Exceeded CPU`, las opciones son el plan de pago de Workers ($5 al mes, 30 s de CPU por petición) o reducir el trabajo por petición.
 - **Limpieza:** las cuentas de prueba se borran con `DELETE FROM usuarios WHERE correo LIKE 'medicion-cpu-%@xdtech.test';`. Sus sesiones se borran en cascada.
 - **Regla de límite de la zona:** la regla de rate limiting de `xdtech.store` bloqueaba la navegación normal con el error 1015: las pruebas `@humo` de Playwright la activaron en segundos. El desarrollador la eliminó el 2026-11-11. Los límites de registro e inicio de sesión los aplica la API con el Durable Object `Limites`.
+
+## Prueba de R2 (Sprint 1.5, tarea 0.2, 2026-11-11)
+
+**Resultado: OK. Se usa R2 para las imágenes de producto.**
+
+La prueba usó un Worker temporal (`xdtech-prueba-r2`, en `workers.dev`, protegido por un token aleatorio) con el binding `IMAGENES` sobre el bucket de producción `xdtech-imagenes`, en la misma cuenta que la API. Al terminar se borraron el Worker y los objetos. Se usó un Worker aparte para no desplegar código sin revisar en `api.xdtech.store`.
+
+| Operación (objeto de 2 MB con cabecera PNG) | Resultado | CPU (`wrangler tail`), mediana (rango) | Tiempo de pared |
+|---|---|---|---|
+| Escritura (`put` del cuerpo completo leído con `arrayBuffer()`) | 6 de 6 OK | 5 ms (2–7) | 565–1.782 ms (la primera, en frío) |
+| Lectura (`get` con stream del cuerpo) | idéntica byte a byte, con `Content-Type` y `ETag` | 0 ms | — |
+| Borrado (`delete` y `head` posterior) | 6 de 6 borrados; la lectura posterior da 404 | 1 ms (0–2) | — |
+
+- **Coste de la subida:** la subida de 2 MB suma ~5 ms de CPU a lo que ya cuesta NestJS. Se espera una subida completa de ~15 ms, en el orden de `GET /productos`. Es una operación esporádica del administrador.
+- **Lectura:** en stream no consume CPU apreciable, así que servir la imagen desde la API (design D9) es viable.
+- **Plan B (no aplicado):** sin R2, no habría imágenes. Los productos mostrarían el icono de su categoría y las imágenes no se guardarían en Postgres.

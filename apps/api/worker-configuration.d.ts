@@ -15,6 +15,7 @@ interface __BaseEnv_Env {
 	DIRECT_URL: string;
 	INVENTARIO: DurableObjectNamespace /* Inventario */;
 	LIMITES: DurableObjectNamespace /* Limites */;
+	IMAGENES: R2Bucket;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
