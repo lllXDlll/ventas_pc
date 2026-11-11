@@ -14,7 +14,10 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "test": "vitest run --project unit --project workers",
-    "test:int": "vitest run --project integracion"
+    "test:int": "vitest run --project integracion",
+    "semilla:categorias": "node scripts/semillas.ts categorias",
+    "semilla:catalogo": "node scripts/semillas.ts catalogo",
+    "semilla:admin": "node scripts/semillas.ts admin"
   },
   "dependencies": {
     "@nestjs/common": "^12.4.2",

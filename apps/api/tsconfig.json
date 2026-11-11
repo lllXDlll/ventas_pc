@@ -5,7 +5,9 @@
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "types": ["node", "@cloudflare/vitest-plugin/types"],
-    "noEmit": true
+    "noEmit": true,
+    // scripts/ se ejecuta con Node 24 (TypeScript directo), que exige la extensión .ts.
+    "allowImportingTsExtensions": true
   },
-  "include": ["src", "test", "worker-configuration.d.ts", "vitest.config.ts"]
+  "include": ["src", "test", "scripts", "worker-configuration.d.ts", "vitest.config.ts"]
 }

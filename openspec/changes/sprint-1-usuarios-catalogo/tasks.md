@@ -9,8 +9,8 @@
 ## 1. Esquema y semillas
 
 - [x] 1.1 Migración nueva que agrega `sesiones.revocada_en timestamptz NULL` (design D4) y su campo en `schema.prisma`; se verifica con `prisma migrate dev` en local y con una prueba de integración que lee la columna
-- [ ] 1.2 Script `scripts/semillas.mjs` con las partes `categorias`, `catalogo` y `admin` (design D11), idempotentes y con `pg` sobre `DIRECT_URL`; agregar los scripts `semilla:*` a `package.json`; se verifica con una prueba de integración que ejecuta cada parte dos veces y compara los conteos
-- [ ] 1.3 Catálogo de ejemplo con al menos dos sockets, dos tipos de RAM, fuentes de distinta potencia, gabinetes de distinto factor de forma y un equipo armado, con atributos válidos según la tabla D8; se verifica con la prueba de integración de 1.2 y con el validador de atributos de 4.1 aplicado a cada producto de la semilla
+- [x] 1.2 Script `scripts/semillas.mjs` con las partes `categorias`, `catalogo` y `admin` (design D11), idempotentes y con `pg` sobre `DIRECT_URL`; agregar los scripts `semilla:*` a `package.json`; se verifica con una prueba de integración que ejecuta cada parte dos veces y compara los conteos
+- [x] 1.3 Catálogo de ejemplo con al menos dos sockets, dos tipos de RAM, fuentes de distinta potencia, gabinetes de distinto factor de forma y un equipo armado, con atributos válidos según la tabla D8; se verifica con la prueba de integración de 1.2 y con el validador de atributos de 4.1 aplicado a cada producto de la semilla
 - [ ] 1.4 Ejecutar la semilla `categorias` en el job `desplegar`, después de las migraciones, y documentar en `apps/api/README.md` cómo ejecutar `admin` y `catalogo` contra Neon; se verifica con la CI en verde y con `GET /categorias` en producción devolviendo las ocho categorías
 
 ## 2. Límites de peticiones
@@ -21,7 +21,7 @@
 
 ## 3. Autenticación y roles
 
-- [ ] 3.1 Servicio de contraseñas con PBKDF2-SHA256, 50.000 iteraciones, el formato `pbkdf2$…`, comparación en tiempo constante y el hash ficticio para correos inexistentes (design D2); se verifica con pruebas unitarias (formato, verificación con otras iteraciones, contraseña incorrecta) y con la prueba de integración de 1.2 que verifica el hash generado en Node
+- [x] 3.1 Servicio de contraseñas con PBKDF2-SHA256, 50.000 iteraciones, el formato `pbkdf2$…`, comparación en tiempo constante y el hash ficticio para correos inexistentes (design D2); se verifica con pruebas unitarias (formato, verificación con otras iteraciones, contraseña incorrecta) y con la prueba de integración de 1.2 que verifica el hash generado en Node
 - [ ] 3.2 `POST /auth/registro` con DTO (correo, contraseña de 8 o más caracteres), 201, 409 por correo repetido sin distinguir mayúsculas y límite por IP; se verifica con pruebas e2e de los escenarios de la spec `autenticacion` (registro) y del límite de registro
 - [ ] 3.3 Sesiones (design D3): `POST /auth/login` con cookie y atributos según `COOKIE_DOMAIN`, error genérico 401 (correo inexistente, contraseña incorrecta y cuenta bloqueada), límites por correo y por IP, y limpieza de las sesiones vencidas o revocadas del usuario al iniciar sesión; se verifica con pruebas e2e de cada escenario de inicio de sesión, del límite por correo (incluido el reinicio al acertar) y del límite por IP
 - [ ] 3.4 Guarda global con `@RequiereSesion()`, `@Roles()` y `@UsuarioActual()` (design D7), `GET /auth/me` y `POST /auth/logout` (revocada y `revocada_en`, cookie vencida); se verifica con pruebas e2e: sin cookie 401, token desconocido 401, sesión vencida 401, sesión revocada 401, cuenta bloqueada 401 y `me` correcto

@@ -1,0 +1,312 @@
+// Semillas idempotentes (spec catalogo y autorizacion-roles, design.md D11 del Sprint 1).
+// Se ejecutan con Node 24 (TypeScript directo) y `pg` sobre DIRECT_URL; por defecto, el
+// Postgres de docker-compose. El cliente de Prisma generado es para workerd y no carga en Node.
+//
+//   node scripts/semillas.ts categorias        # también la ejecuta el job "desplegar"
+//   node scripts/semillas.ts catalogo          # catálogo de ejemplo (local y demo)
+//   ADMIN_CORREO=… ADMIN_CONTRASENA=… node scripts/semillas.ts admin
+//
+// ADMIN_CORREO y ADMIN_CONTRASENA se pasan en el momento; nunca se versionan.
+import { randomUUID } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
+import pg from 'pg';
+import { hashContrasena } from '../src/auth/contrasenas.ts';
+import {
+  CATEGORIAS,
+  type CodigoCategoria,
+  NOMBRES_CATEGORIA,
+  tipoDeCategoria,
+  validarAtributos,
+} from '../src/catalogo/atributos.ts';
+
+export const URL_LOCAL = 'postgresql://xdtech:xdtech@localhost:5432/xdtech';
+
+type Cliente = Pick<pg.Client, 'query'>;
+
+export async function semillaCategorias(cliente: Cliente): Promise<number> {
+  for (const codigo of CATEGORIAS) {
+    await cliente.query(
+      `INSERT INTO categorias (id, codigo, nombre) VALUES ($1, $2, $3)
+       ON CONFLICT (codigo) DO UPDATE SET nombre = excluded.nombre`,
+      [randomUUID(), codigo, NOMBRES_CATEGORIA[codigo]],
+    );
+  }
+  return CATEGORIAS.length;
+}
+
+export interface ProductoSemilla {
+  id: string;
+  nombre: string;
+  categoria: CodigoCategoria;
+  precio: string;
+  stock: number;
+  atributos: Record<string, unknown>;
+}
+
+/** UUID fijo por producto: volver a ejecutar la semilla no duplica nada. */
+const id = (n: number) => `0195a000-0000-7000-8000-${String(n).padStart(12, '0')}`;
+
+export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
+  // Procesadores: dos sockets.
+  {
+    id: id(1),
+    nombre: 'AMD Ryzen 5 7600',
+    categoria: 'PROCESADOR',
+    precio: '829.00',
+    stock: 12,
+    atributos: { socket: 'AM5', potenciaConsumidaW: 65 },
+  },
+  {
+    id: id(2),
+    nombre: 'AMD Ryzen 7 7800X3D',
+    categoria: 'PROCESADOR',
+    precio: '1749.00',
+    stock: 5,
+    atributos: { socket: 'AM5', potenciaConsumidaW: 120 },
+  },
+  {
+    id: id(3),
+    nombre: 'Intel Core i5-14400F',
+    categoria: 'PROCESADOR',
+    precio: '749.00',
+    stock: 15,
+    atributos: { socket: 'LGA1700', potenciaConsumidaW: 65 },
+  },
+  {
+    id: id(4),
+    nombre: 'Intel Core i7-14700K',
+    categoria: 'PROCESADOR',
+    precio: '1599.00',
+    stock: 0,
+    atributos: { socket: 'LGA1700', potenciaConsumidaW: 125 },
+  },
+  // Placas madre.
+  {
+    id: id(10),
+    nombre: 'MSI B650 Gaming Plus WiFi',
+    categoria: 'PLACA_MADRE',
+    precio: '799.00',
+    stock: 8,
+    atributos: {
+      socket: 'AM5',
+      tipoRam: 'DDR5',
+      maxModulosRam: 4,
+      factorForma: 'ATX',
+      interfacesAlmacenamiento: ['M.2', 'SATA'],
+    },
+  },
+  {
+    id: id(11),
+    nombre: 'ASUS Prime B760M-A D4',
+    categoria: 'PLACA_MADRE',
+    precio: '519.00',
+    stock: 10,
+    atributos: {
+      socket: 'LGA1700',
+      tipoRam: 'DDR4',
+      maxModulosRam: 4,
+      factorForma: 'mATX',
+      interfacesAlmacenamiento: ['M.2', 'SATA'],
+    },
+  },
+  {
+    id: id(12),
+    nombre: 'Gigabyte Z790 Aorus Elite AX',
+    categoria: 'PLACA_MADRE',
+    precio: '1149.00',
+    stock: 4,
+    atributos: {
+      socket: 'LGA1700',
+      tipoRam: 'DDR5',
+      maxModulosRam: 4,
+      factorForma: 'ATX',
+      interfacesAlmacenamiento: ['M.2', 'SATA'],
+    },
+  },
+  // Memoria: dos tipos.
+  {
+    id: id(20),
+    nombre: 'Kingston Fury Beast 32 GB (2x16) DDR5-6000',
+    categoria: 'RAM',
+    precio: '429.00',
+    stock: 20,
+    atributos: { tipoRam: 'DDR5', velocidadRam: 6000, modulos: 2 },
+  },
+  {
+    id: id(21),
+    nombre: 'Corsair Vengeance LPX 16 GB (2x8) DDR4-3200',
+    categoria: 'RAM',
+    precio: '179.00',
+    stock: 25,
+    atributos: { tipoRam: 'DDR4', velocidadRam: 3200, modulos: 2 },
+  },
+  // Tarjetas gráficas.
+  {
+    id: id(30),
+    nombre: 'NVIDIA GeForce RTX 4060 8 GB',
+    categoria: 'TARJETA_GRAFICA',
+    precio: '1299.00',
+    stock: 6,
+    atributos: { potenciaConsumidaW: 115, largoMm: 240 },
+  },
+  {
+    id: id(31),
+    nombre: 'AMD Radeon RX 7800 XT 16 GB',
+    categoria: 'TARJETA_GRAFICA',
+    precio: '2199.00',
+    stock: 3,
+    atributos: { potenciaConsumidaW: 263, largoMm: 320 },
+  },
+  // Fuentes: distinta potencia.
+  {
+    id: id(40),
+    nombre: 'EVGA 550 BR 550 W',
+    categoria: 'FUENTE',
+    precio: '199.00',
+    stock: 9,
+    atributos: { potenciaEntregadaW: 550 },
+  },
+  {
+    id: id(41),
+    nombre: 'Corsair RM750e 750 W',
+    categoria: 'FUENTE',
+    precio: '429.00',
+    stock: 7,
+    atributos: { potenciaEntregadaW: 750 },
+  },
+  {
+    id: id(42),
+    nombre: 'Seasonic Focus GX-1000 1000 W',
+    categoria: 'FUENTE',
+    precio: '729.00',
+    stock: 2,
+    atributos: { potenciaEntregadaW: 1000 },
+  },
+  // Gabinetes: distinto factor de forma.
+  {
+    id: id(50),
+    nombre: 'Lian Li Lancool 216 (ATX)',
+    categoria: 'GABINETE',
+    precio: '389.00',
+    stock: 5,
+    atributos: {
+      factoresFormaSoportados: ['ATX', 'mATX', 'ITX'],
+      largoGpuMaxMm: 392,
+      altoDisipadorMaxMm: 180,
+    },
+  },
+  {
+    id: id(51),
+    nombre: 'Cooler Master Q300L (mATX)',
+    categoria: 'GABINETE',
+    precio: '179.00',
+    stock: 11,
+    atributos: {
+      factoresFormaSoportados: ['mATX', 'ITX'],
+      largoGpuMaxMm: 360,
+      altoDisipadorMaxMm: 157,
+    },
+  },
+  // Almacenamiento.
+  {
+    id: id(60),
+    nombre: 'Samsung 990 EVO 1 TB NVMe',
+    categoria: 'ALMACENAMIENTO',
+    precio: '339.00',
+    stock: 18,
+    atributos: { interfaz: 'M.2' },
+  },
+  {
+    id: id(61),
+    nombre: 'Crucial MX500 1 TB SATA',
+    categoria: 'ALMACENAMIENTO',
+    precio: '249.00',
+    stock: 14,
+    atributos: { interfaz: 'SATA' },
+  },
+  // Equipo armado: producto propio con su stock.
+  {
+    id: id(70),
+    nombre: 'PC Gamer AM5: Ryzen 5 7600 + RTX 4060',
+    categoria: 'EQUIPO_ARMADO',
+    precio: '4299.00',
+    stock: 3,
+    atributos: {
+      descripcion: 'Ryzen 5 7600, B650, 32 GB DDR5, RTX 4060, 1 TB NVMe, 750 W, gabinete ATX',
+    },
+  },
+];
+
+export async function semillaCatalogo(cliente: Cliente): Promise<number> {
+  for (const p of CATALOGO_EJEMPLO) {
+    const error = validarAtributos(p.categoria, p.atributos);
+    if (error) throw new Error(`semilla inválida (${p.nombre}): ${error}`);
+    await cliente.query(
+      `INSERT INTO productos (id, nombre, categoria_id, tipo, precio, atributos, actualizado_en)
+       SELECT $1, $2, c.id, $4::tipo_producto, $5, $6::jsonb, now()
+         FROM categorias c WHERE c.codigo = $3
+       ON CONFLICT (id) DO NOTHING`,
+      [
+        p.id,
+        p.nombre,
+        p.categoria,
+        tipoDeCategoria(p.categoria),
+        p.precio,
+        JSON.stringify(p.atributos),
+      ],
+    );
+    await cliente.query(
+      `INSERT INTO stock (id, producto_id, cantidad) VALUES ($1, $2, $3)
+       ON CONFLICT (producto_id) DO NOTHING`,
+      [randomUUID(), p.id, p.stock],
+    );
+  }
+  return CATALOGO_EJEMPLO.length;
+}
+
+/** Crea el administrador o, si el correo ya existe, lo deja como ADMIN ACTIVO con esa contraseña. */
+export async function semillaAdmin(
+  cliente: Cliente,
+  correo: string,
+  contrasena: string,
+): Promise<void> {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))
+    throw new Error('ADMIN_CORREO no es un correo válido');
+  if (contrasena.length < 12) throw new Error('ADMIN_CONTRASENA debe tener al menos 12 caracteres');
+  await cliente.query(
+    `INSERT INTO usuarios (id, correo, hash_contrasena, rol, estado, actualizado_en)
+     VALUES ($1, $2, $3, 'ADMIN', 'ACTIVO', now())
+     ON CONFLICT (correo) DO UPDATE
+       SET hash_contrasena = excluded.hash_contrasena, rol = 'ADMIN', estado = 'ACTIVO',
+           actualizado_en = now()`,
+    [randomUUID(), correo, await hashContrasena(contrasena)],
+  );
+}
+
+async function principal(): Promise<void> {
+  const parte = process.argv[2];
+  const cliente = new pg.Client({ connectionString: process.env.DIRECT_URL || URL_LOCAL });
+  await cliente.connect();
+  try {
+    if (parte === 'categorias') console.log(`categorías: ${await semillaCategorias(cliente)}`);
+    else if (parte === 'catalogo') {
+      await semillaCategorias(cliente);
+      console.log(`productos de ejemplo: ${await semillaCatalogo(cliente)}`);
+    } else if (parte === 'admin') {
+      const correo = process.env.ADMIN_CORREO ?? '';
+      await semillaAdmin(cliente, correo, process.env.ADMIN_CONTRASENA ?? '');
+      console.log(`administrador listo: ${correo}`);
+    } else {
+      throw new Error('uso: node scripts/semillas.ts categorias|catalogo|admin');
+    }
+  } finally {
+    await cliente.end();
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  principal().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}
