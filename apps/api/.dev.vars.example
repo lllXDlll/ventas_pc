@@ -8,6 +8,3 @@ SESSION_TTL_DAYS=7
 
 # Tiempo de espera de cada dependencia en GET /health/ready (ms).
 HEALTH_TIMEOUT_MS=3000
-
-# TEMPORAL (Sprint 0, prueba 4): habilita /__prototipo/inventario. Vacío = deshabilitado.
-PROTOTIPO_TOKEN=
