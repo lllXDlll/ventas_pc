@@ -126,6 +126,12 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
 
+      # Idempotente: las ocho categorías del catálogo (design D11 del Sprint 1).
+      - name: Semilla de categorías
+        run: pnpm --filter api semilla:categorias
+        env:
+          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+
       # "run deploy": "pnpm deploy" a secas es un comando propio de pnpm.
       - name: Desplegar la API
         run: pnpm --filter api run deploy
