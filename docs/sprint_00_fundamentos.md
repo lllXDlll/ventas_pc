@@ -4,7 +4,9 @@
 
 **Objetivo:** entornos conectados, despliegue vacío funcionando en Cloudflare, esquema inicial migrado y compatibilidades comprobadas con Wrangler, incluida la decisión sobre el caché de concurrencia.
 **Depende de:** nada.
-**Prerrequisito (fuera del código):** el dominio `xdtech.store` comprado y su DNS administrado en Cloudflare; cuentas de Cloudflare, Neon y GitHub; el CLI Wrangler autenticado (`wrangler login`). La cuenta de Upstash se crea solo para evaluar la opción A del caché, y la de Vercel solo si el frontend necesita el plan B. El dominio es el único elemento del proyecto que no es gratuito.
+**Prerrequisito (fuera del código):** el dominio `xdtech.store` comprado y su DNS administrado en Cloudflare; cuentas de Cloudflare, Neon y GitHub; el CLI Wrangler autenticado (`wrangler login`). No hizo falta crear cuentas de Upstash ni de Vercel: la opción B del caché y el frontend en Cloudflare pasaron las pruebas. El dominio es el único elemento del proyecto que no es gratuito.
+
+> **Resultado (2026-11-11):** sprint implementado con el cambio OpenSpec `sprint-0-fundamentos`. Las nueve pruebas de HU-36b dieron OK, y sus mediciones y decisiones están en `docs/compatibilidad-cloudflare.md`. Lo que cambió respecto a este plan: Neon se accede por **Hyperdrive** con `@prisma/adapter-pg` (no con el adaptador de Neon), el almacén es la **opción B** (Durable Object) y el entorno local no usa Redis.
 
 ## HU-36a Base técnica y despliegue vacío
 **Como** desarrollador, **quiero** el repositorio, la CI y los servicios conectados, **para** empezar a construir sobre una base estable.
@@ -14,11 +16,11 @@
 - Configurar Wrangler en `apps/api`: `wrangler.jsonc` con nombre, `main: src/worker.ts`, `compatibility_date` igual o posterior a `2026-08-04`, Cron Triggers (expiración cada minuto, reconciliación cada 5 minutos y limpieza diaria de sesiones) y variables no secretas.
 - Crear `src/worker.ts`: inicializa NestJS (adaptador Express) una vez por instancia, enruta las peticiones con `httpServerHandler` de `cloudflare:node` y exporta el handler `scheduled` junto al `fetch`. Ver sección 2.0.1 de `00_parte_tecnica.md`.
 - Configurar el despliegue del frontend en Cloudflare con Wrangler (ver prueba 2 de HU-36b).
-- Configurar Prisma con el adaptador para Neon y dos cadenas de conexión (una para la app, otra directa para las migraciones).
-- Crear `docker-compose.yml` con Postgres y Redis locales (para pruebas de integración y de carga).
+- Configurar Prisma con `@prisma/adapter-pg` sobre Hyperdrive (creado con la cadena directa de Neon y el caché desactivado). La misma cadena directa se usa para las migraciones.
+- Crear `docker-compose.yml` con Postgres local (para pruebas de integración y de carga).
 - Crear la migración inicial con el esquema completo del modelo de datos.
 - Módulo `health` con dos endpoints: `GET /health/live` (sin dependencias, responde 200) y `GET /health/ready` (verifica Postgres y el almacén de disponibilidad; 503 si alguno falla; solo para CI y uso manual).
-- GitHub Actions: instalar, lint, pruebas unitarias e integración (Postgres y Redis como servicios), build, y despliegue con `wrangler deploy` en la rama principal (secretos `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`). Las migraciones se aplican en un paso de CI con la cadena directa de Neon, no desde el Worker.
+- GitHub Actions: instalar, lint, pruebas unitarias e integración (Postgres como servicio), build, y despliegue con `wrangler deploy` en la rama principal (secretos `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`). Las migraciones se aplican en un paso de CI con la cadena directa de Neon, no desde el Worker.
 - Documentar variables de entorno en `.env.example` y `.dev.vars.example` (incluir `COOKIE_DOMAIN`, `FRONTEND_ORIGIN` para CORS y `SESSION_TTL_DAYS`); `.dev.vars` en `.gitignore`.
 - Configurar `api.xdtech.store` como Custom Domain del Worker y el frontend como Custom Domain de su proyecto en Cloudflare, ambos con HTTPS válido. Ver sección 2.2.
 - Crear `docs/compatibilidad-cloudflare.md` con la tabla de resultados que llena HU-36b.
@@ -40,7 +42,7 @@
 2. **Next.js en Cloudflare:** compilar y desplegar el frontend con Wrangler; una página renderizada en servidor y una llamada a la API con credenciales.
 3. **Prisma con Neon desde un Worker:** una consulta real con el adaptador; anotar la latencia con la base dormida y despierta, y cuántos subrequests consume.
 4. **Caché de concurrencia (decisión de la sección 5.3):**
-   - Opción A: ejecutar un script Lua trivial en Upstash con `@upstash/redis` (`eval`/`evalsha`) y una reserva de varios productos de todo o nada.
+   - Opción A (no se ejecutó, porque la B pasó): ejecutar un script Lua trivial en Upstash con `@upstash/redis` (`eval`/`evalsha`) y una reserva de varios productos de todo o nada.
    - Opción B: un Durable Object con SQLite que reserve varios productos de todo o nada, probado en `wrangler dev`.
    - En ambas: 300 intentos concurrentes sobre un componente de 5 unidades deben dar exactamente 5 reservas. Medir comandos o filas escritas por reserva, y la latencia.
 5. **Hash de contraseñas:** medir el tiempo de CPU de la implementación elegida (JS/WASM o PBKDF2 con Web Crypto) con parámetros de costo razonables. El objetivo es no superar los 10 ms del plan gratuito.
@@ -51,9 +53,9 @@
 
 **Criterios de aceptación**
 - `docs/compatibilidad-cloudflare.md` completo, con OK o no OK y los números medidos para las nueve pruebas (la cookie probada al menos en Chrome y Safari o Firefox).
-- **Decisión del caché registrada** con su motivo (opción A u opción B), aplicando la regla de la sección 5.3. Si se elige la B, se actualizan las referencias a Upstash en los documentos.
-- Si NestJS no corre o su arranque o tamaño son inaceptables, se documenta y se decide el paso a Hono antes del Sprint 1.
-- Si Next.js no funciona en Cloudflare, se documenta y el frontend pasa a Vercel con el DNS en Cloudflare.
+- **Decisión del caché registrada** con su motivo, aplicando la regla de la sección 5.3: **opción B** (hecho). Las referencias a Upstash de los documentos ya están actualizadas.
+- NestJS corre en Workers con NestJS y Prisma inicializados en el ámbito global: no hace falta Hono (hecho).
+- Next.js funciona en Cloudflare con OpenNext: no hace falta Vercel (hecho).
 - Si Prisma con Neon falla en Workers, se prueba el driver serverless de Neon directamente y se documenta el resultado.
 - Si el hash no cabe en 10 ms, se documenta y se decide entre ajustar parámetros o el plan de pago de Workers.
 - Si la cookie entre subdominios falla, se documenta y se decide la alternativa antes del Sprint 1.

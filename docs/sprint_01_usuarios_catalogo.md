@@ -14,7 +14,7 @@
 - Contraseña con hash robusto; validación de formato de correo y longitud mínima.
 - Límite de peticiones por IP en el registro (5 por hora, configurable); al excederlo, 429 con mensaje claro.
 
-**Tareas:** `POST /auth/registro`, DTO con validación, servicio de hash (sin binarios nativos, ver sección 6 de `00_parte_tecnica.md`), límite por IP leyendo `CF-Connecting-IP`, con contadores en el almacén elegido en el Sprint 0 (ver sección 2.2 de `00_parte_tecnica.md`), pruebas unitarias y e2e, pantalla de registro.
+**Tareas:** `POST /auth/registro`, DTO con validación, servicio de hash (sin binarios nativos, ver sección 6 de `00_parte_tecnica.md`), límite por IP leyendo `CF-Connecting-IP`, con contadores en el Durable Object `Limites` (ver sección 2.2 de `00_parte_tecnica.md`), agrupando las IP IPv6 por prefijo /64, pruebas unitarias y e2e, pantalla de registro.
 
 ## HU-02 Inicio y cierre de sesión
 **Como** usuario registrado, **quiero** iniciar y cerrar sesión, **para** acceder de forma segura.
@@ -27,7 +27,7 @@
 - Límite de peticiones en el inicio de sesión: por correo (5 intentos fallidos por 15 min) y por IP, más holgado; al excederlo, 429.
 - Las sesiones vencidas o revocadas se eliminan: tarea diaria y limpieza de las del propio usuario al iniciar sesión. Una sesión vencida o revocada se rechaza aunque no se haya borrado todavía.
 
-**Tareas:** `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, uso de la tabla `sesiones` (guardar solo el hash del token), guarda de autenticación que lee la cookie, CORS con credenciales solo para el origen del frontend, límite por correo y por IP con contadores en el almacén elegido en el Sprint 0 (con Upstash, `INCR` más `EXPIRE`; el contador por correo solo aumenta en los intentos fallidos y se borra al acertar), IP leída de `CF-Connecting-IP` (no usar `req.ip` ni `trust proxy`), limpieza diaria de sesiones con un Cron Trigger de Cloudflare (handler `scheduled`) y limpieza al iniciar sesión, pantallas.
+**Tareas:** `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, uso de la tabla `sesiones` (guardar solo el hash del token), guarda de autenticación que lee la cookie, CORS con credenciales solo para el origen del frontend, límite por correo y por IP con contadores en el Durable Object `Limites` (el contador por correo solo aumenta en los intentos fallidos y se borra al acertar), IP leída de `CF-Connecting-IP` (no usar `req.ip` ni `trust proxy`), limpieza diaria de sesiones con un Cron Trigger de Cloudflare (handler `scheduled`) y limpieza al iniciar sesión, pantallas.
 *Nota:* no usar JWT. Ver sección 2.2 de `00_parte_tecnica.md`.
 
 ## HU-03 Recuperación de acceso: DIFERIDA
@@ -60,7 +60,7 @@ Esta historia **no se implementa** en este proyecto. Queda como mejora futura; l
 - La actualización de stock valida `version`; si es obsoleta, se rechaza con aviso.
 
 **Tareas:** `PATCH /admin/productos/:id`, `PATCH /admin/stock/:productoId` con bloqueo optimista, pruebas de conflicto de versión.
-*Nota:* aún no existe Redis de disponible; dejar un punto de extensión `DisponibleService` que se implementa en el Sprint 3 (por ahora devuelve el stock físico).
+*Nota:* el catálogo todavía no lee el disponible del Durable Object `Inventario`. Usar el punto de extensión `DisponibleService`, que se completa en el Sprint 3 (por ahora devuelve el stock físico).
 
 ## HU-07 Exploración del catálogo con stock real
 **Como** cliente, **quiero** explorar el catálogo y ver la disponibilidad, **para** decidir sin sorpresas.

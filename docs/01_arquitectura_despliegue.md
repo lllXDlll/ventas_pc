@@ -12,8 +12,8 @@ flowchart LR
     CF -->|xdtech.store| WEB[Frontend Next.js<br/>en Cloudflare]
     CF -->|api.xdtech.store| API[Worker: API NestJS]
     WEB -->|fetch con cookie| API
-    API -->|SQL, driver Neon| PG[(Neon Postgres<br/>fuente de verdad)]
-    API -->|disponibilidad| AV{{Almacén de disponibilidad<br/>A: Upstash Redis o B: Durable Object}}
+    API -->|SQL por Hyperdrive, adapter-pg| PG[(Neon Postgres<br/>fuente de verdad)]
+    API -->|disponibilidad| AV{{Almacén de disponibilidad<br/>Durable Object Inventario}}
     API -->|HTTPS| LLM[API del LLM]
     CRON[Cron Triggers] -->|scheduled| API
     GH[GitHub Actions] -->|wrangler deploy + migraciones| CF
@@ -25,10 +25,10 @@ flowchart LR
 | Pieza | Rol | Plataforma | Estado |
 |---|---|---|---|
 | Cloudflare (DNS, CDN, TLS) | Entrada única para `xdtech.store` y `api.xdtech.store` | Cloudflare | Fijo |
-| Frontend | Next.js: catálogo, armador, carrito, panel | Cloudflare (plan B: Vercel con DNS en Cloudflare) | A validar |
-| API | NestJS (adaptador Express) como Worker (plan B: Hono) | Cloudflare Workers | A validar |
-| Base de datos | Postgres, fuente de verdad de stock, órdenes, sesiones y uso del asistente | Neon (Prisma con adaptador de Neon) | Fijo |
-| Almacén de disponibilidad | Disponible = físico − reservas activas, con reservas atómicas y TTL | Upstash Redis (A) o Durable Object con SQLite (B) | Por decidir en Sprint 0 |
+| Frontend | Next.js: catálogo, armador, carrito, panel | Cloudflare, con `@opennextjs/cloudflare` | Validado (Sprint 0) |
+| API | NestJS (adaptador Express) como Worker | Cloudflare Workers | Validado (Sprint 0) |
+| Base de datos | Postgres, fuente de verdad de stock, órdenes, sesiones y uso del asistente | Neon, por Cloudflare Hyperdrive (Prisma con `@prisma/adapter-pg`, caché desactivado) | Fijo y validado |
+| Almacén de disponibilidad | Disponible = físico − reservas activas, con reservas atómicas y TTL | Durable Object `Inventario` con SQLite (opción B) | Decidido en el Sprint 0 |
 | Tareas programadas | Expiración, reconciliación, limpieza de sesiones | Cron Triggers de Cloudflare | Fijo |
 | Proveedor de IA | Recomendaciones, detrás de la interfaz `ProveedorIA` | API externa del LLM | Fijo (proveedor intercambiable) |
 | CI/CD | Pruebas, migraciones y despliegue | GitHub Actions + Wrangler | Fijo |
@@ -46,7 +46,7 @@ No hay cola de mensajes, balanceador propio, servidor siempre encendido ni monit
 
 | Host | Destino | Mecanismo |
 |---|---|---|
-| `xdtech.store` (o `app.xdtech.store`) | Frontend | Custom Domain del proyecto en Cloudflare |
+| `xdtech.store` | Frontend | Custom Domain del Worker del frontend; `www.xdtech.store` redirige con 308 |
 | `api.xdtech.store` | Worker de la API | Custom Domain del Worker |
 
 - Ambos comparten el sitio `xdtech.store`, por lo que la cookie de sesión usa `Domain=.xdtech.store` y `SameSite=Lax`.
@@ -101,16 +101,20 @@ Puertos: DisponibleService (almacén), ProveedorIA, Prisma (Postgres)
 ```
 
 - El **motor de reglas** (6 reglas: SOCKET, RAM, POTENCIA, DIMENSIONES, FACTOR_FORMA, ALMACENAMIENTO) es código puro sin dependencias de infraestructura, con parámetros leídos de la base de datos.
-- `DisponibleService` es la única puerta al almacén de disponibilidad, con dos implementaciones intercambiables (A y B), para que el resto del código no dependa de la elección.
+- `DisponibleService` es la única puerta al almacén de disponibilidad. Su implementación usa el Durable Object `Inventario`, y el resto del código no depende de ella: si hiciera falta el respaldo con Upstash, solo cambiaría esa implementación.
 
 ### 2.3 Base de datos (Neon)
 
-- Dos cadenas de conexión: la de la app (con pooler) para el Worker y la directa para las migraciones en CI.
+- El Worker se conecta por **Hyperdrive** (binding `HYPERDRIVE`), creado con la cadena **directa** de Neon y el **caché de consultas desactivado**. La cadena vive en la configuración de Hyperdrive, no en el Worker. La misma cadena directa se usa para las migraciones en la CI (secreto `NEON_DIRECT_URL`).
+- Prisma: un `PrismaClient` por instancia del Worker y una conexión `pg` por petición, a través de `conPrisma()`.
+- Hyperdrive, plan gratuito: 100.000 consultas al día, ~20 conexiones al origen y consultas de hasta 60 s.
 - Las migraciones de Prisma se aplican en un paso de CI, nunca al arrancar el Worker.
 - Neon suspende el cómputo tras 5 minutos sin uso (la primera petición es más lenta); antes de la demo se despierta con una petición real. Plan gratuito: 100 CU-horas al mes.
 - Tablas clave para la concurrencia: `stock` (con `version`), `reservas`, `reserva_items`, `ordenes` (con `clave_idempotencia` única), `sesiones`, `uso_asistente`.
 
-### 2.4 Almacén de disponibilidad: dos opciones
+### 2.4 Almacén de disponibilidad: opción B elegida
+
+En el Sprint 0 se eligió la **opción B**: 300 reservas concurrentes sobre 5 unidades dieron exactamente 5 en producción, con p95 de 383 ms en el objeto, 4 filas escritas y 1 subrequest por reserva. La opción A queda como respaldo no implementado. La tabla compara las dos tal como se plantearon.
 
 | | Opción A: Upstash Redis | Opción B: Durable Object |
 |---|---|---|
@@ -123,16 +127,16 @@ Puertos: DisponibleService (almacén), ProveedorIA, Prisma (Postgres)
 | Contadores de límite de peticiones | `INCR` + `EXPIRE` | En el mismo objeto u otro objeto dedicado |
 | Riesgo principal | Consumo de comandos y latencia por REST | Un solo objeto concentra toda la carga; probar con 300 concurrentes |
 
-La elección se toma en el Sprint 0 con la regla de la sección 5.3 de `00_parte_tecnica.md` y se registra antes del Sprint 1.
+La elección se tomó con la regla de la sección 5.3 de `00_parte_tecnica.md` y está registrada en `docs/compatibilidad-cloudflare.md`.
 
 ### 2.5 Sesiones y límites de peticiones
 
 - Sesión: token opaco aleatorio en cookie `httpOnly; Secure; SameSite=Lax; Domain=.xdtech.store`, 7 días. En Postgres se guarda solo el hash del token (tabla `sesiones`). Sin JWT.
-- Límites: registro por IP (5/hora), inicio de sesión por correo (5 fallos/15 min, se reinicia al acertar) y por IP (50/15 min), asistente por usuario (10/24 h contado desde `uso_asistente`). Los contadores viven en el almacén elegido, nunca en la memoria del Worker.
+- Límites: registro por IP (5/hora), inicio de sesión por correo (5 fallos/15 min, se reinicia al acertar) y por IP (50/15 min), asistente por usuario (10/24 h contado desde `uso_asistente`). Los contadores de registro e inicio de sesión viven en el Durable Object `Limites`, nunca en la memoria del Worker. La IP se lee de `CF-Connecting-IP`, agrupando las direcciones IPv6 por prefijo /64.
 
 ### 2.6 Frontend
 
-- Next.js desplegado en Cloudflare con Wrangler (a validar; plan B Vercel).
+- Next.js desplegado en Cloudflare con OpenNext y Wrangler (validado en el Sprint 0). El build se hace en Linux (CI): en Windows falla por los enlaces simbólicos de pnpm.
 - Llama a la API con `credentials: 'include'` hacia `api.xdtech.store`; no guarda tokens en el navegador.
 - Variable pública con la URL de la API definida en tiempo de compilación.
 
@@ -140,24 +144,24 @@ La elección se toma en el Sprint 0 con la regla de la sección 5.3 de `00_parte
 
 ```mermaid
 flowchart LR
-    PR[Push / PR] --> CI[Instalar, lint, pruebas<br/>Postgres y Redis como servicios]
+    PR[Push / PR] --> CI[Instalar, lint, pruebas<br/>Postgres como servicio]
     CI --> B[Build]
     B -->|rama principal| M[Migraciones con la cadena directa de Neon]
     M --> D[wrangler deploy: API y frontend]
 ```
 
-- Secretos de CI: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` y la cadena directa de Neon.
-- Secretos del Worker con `wrangler secret put`: cadena de Neon, clave de la IA y, si se elige la opción A, credenciales de Upstash. Nada de secretos en el repositorio; `.dev.vars` fuera de git.
+- Secretos de CI: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` y `NEON_DIRECT_URL` (cadena directa de Neon, solo para migraciones).
+- Secretos del Worker con `wrangler secret put`: solo la clave de la IA (Sprint 5). El Worker no necesita la cadena de Neon, que vive en Hyperdrive. Nada de secretos en el repositorio; `.dev.vars` fuera de git.
 
 ### 2.8 Entornos
 
 | Entorno | API | Postgres | Almacén | Uso |
 |---|---|---|---|---|
-| Local | `wrangler dev` | Docker | Redis local por HTTP (A) o Durable Object local (B) | Desarrollo y k6 |
-| CI | Pruebas de integración | Servicio Postgres | Servicio Redis | Verificación |
-| Producción | Worker en `api.xdtech.store` | Neon | Upstash o Durable Object | Demo |
+| Local | `wrangler dev` | Docker (`localConnectionString` de Hyperdrive) | Durable Object local de `wrangler dev` | Desarrollo y k6 |
+| CI | Pruebas de integración | Servicio Postgres | Durable Object dentro de workerd (Vitest) | Verificación |
+| Producción | Worker en `api.xdtech.store` | Neon por Hyperdrive | Durable Object `Inventario` | Demo |
 
-Plan de respaldo para la demo: backend con `wrangler dev` y Postgres y Redis en Docker local.
+Plan de respaldo para la demo: backend con `wrangler dev` y Postgres en Docker local.
 
 ### 2.9 Salud y observabilidad
 
@@ -177,16 +181,15 @@ Plan de respaldo para la demo: backend con `wrangler dev` y Postgres y Redis en 
 
 | Riesgo | Efecto | Respuesta |
 |---|---|---|
-| NestJS no arranca bien en Workers (tamaño o CPU) | API inviable | Pasar a Hono antes del Sprint 1 |
-| Next.js no funciona en Cloudflare | Frontend bloqueado | Vercel con DNS en Cloudflare |
-| Hash de contraseñas excede 10 ms | Errores en login | Ajustar parámetros o plan de pago de Workers |
-| Cuota del almacén agotada | Reservas fallan | Cambiar a la otra opción; pruebas de carga siempre en local |
+| CPU por encima de 10 ms en la primera consulta de cada instancia (20–39 ms medidos) | Peticiones lentas o rechazadas bajo carga | Inicialización global de NestJS y Prisma (ya aplicada); vigilar con `wrangler tail` y con k6 en el Sprint 3 |
+| Hash de contraseñas excede 10 ms | Errores en login | PBKDF2 con 50.000 iteraciones (~6,5 ms medidos) |
+| Cuota del almacén (100.000 filas escritas al día) o de Hyperdrive (100.000 consultas al día) agotada | Reservas o consultas fallan | Pruebas de carga repetidas en local; una sola corrida contra producción; respaldo con Upstash detrás del mismo puerto |
+| 429 del borde de Cloudflare con muchas peticiones simultáneas desde una IP | Una prueba de carga desde una sola máquina no llega al Worker | Lanzarla contra `*.workers.dev` o ajustar la regla de la zona |
 | Neon dormido en la demo | Primera petición lenta | Despertar antes de empezar |
-| Cookie entre subdominios rechazada por algún navegador | Sesión no se mantiene | Alternativa decidida en el Sprint 0 |
 | Pérdida de datos del almacén | Disponible incorrecto | Reconstrucción perezosa y reconciliación cada 5 minutos |
 
 ## 4. Orden de verificación
 
-1. Sprint 0: nueve pruebas de compatibilidad y decisión del caché.
+1. Sprint 0: nueve pruebas de compatibilidad y decisión del caché (hechas; todas OK).
 2. Sprint 3: prueba k6 local (300 concurrentes sobre 5 unidades dan exactamente 5 reservas).
 3. Sprint 7: despliegue final, verificación de cookie entre subdominios, los tres Cron Triggers y la prueba de humo en producción.

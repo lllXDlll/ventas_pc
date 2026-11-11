@@ -41,14 +41,14 @@
 - Las órdenes confirmadas nunca superan el stock; el stock físico nunca es negativo.
 - Reintentos con la misma `Idempotency-Key` no duplican compras.
 - Con TTL corto, las reservas no pagadas se liberan y una segunda oleada adquiere esas unidades.
-- Tras reiniciar Redis, la reconciliación restaura el disponible correcto.
+- Tras vaciar el almacenamiento del Durable Object `Inventario`, la reconciliación restaura el disponible correcto.
 
-**Tareas:** extender `tests/k6/` con escenarios de idempotencia, expiración y reinicio de Redis; exportar resultados para el informe.
+**Tareas:** extender `tests/k6/` con escenarios de idempotencia, expiración y pérdida del almacén de disponibilidad; exportar resultados para el informe.
 
 ## Endurecimiento de seguridad (transversal)
 - Hash robusto, sesiones con vencimiento y guardas de rol en cada endpoint administrativo.
 - Validación de entradas en todos los DTOs.
-- Límite de peticiones en registro (por IP), inicio de sesión (por correo y por IP) y asistente (por usuario, contado desde `uso_asistente`). Los contadores de registro e inicio de sesión van en el almacén elegido en el Sprint 0, nunca en memoria del Worker, y la IP se lee de `CF-Connecting-IP`. Verificar que la IP detectada sea la real del cliente.
+- Límite de peticiones en registro (por IP), inicio de sesión (por correo y por IP) y asistente (por usuario, contado desde `uso_asistente`). Los contadores de registro e inicio de sesión van en el Durable Object `Limites`, nunca en memoria del Worker, y la IP se lee de `CF-Connecting-IP`. Verificar que la IP detectada sea la real del cliente.
 - Verificar que la limpieza de sesiones vencidas funciona y que la tabla `sesiones` no crece sin límite.
 - Revisar la cookie de sesión: `httpOnly`, `Secure`, `SameSite=Lax`, y CORS con credenciales restringido al origen del frontend.
 - Revisión de que ningún secreto esté en el repositorio.

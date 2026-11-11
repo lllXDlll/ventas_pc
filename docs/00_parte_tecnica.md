@@ -10,15 +10,16 @@ Fuera de alcance: pasarelas de pago reales, logística de envío, garantías y s
 
 ## 2. Stack y despliegue
 
-**El despliegue se realiza en Cloudflare, con el CLI Wrangler.** La base de datos es **Neon** (decisión fijada). El caché de concurrencia **no está decidido**: se decide en el Sprint 0 con pruebas (ver sección 5.3).
+**El despliegue se realiza en Cloudflare, con el CLI Wrangler.** La base de datos es **Neon**, a la que el Worker accede por **Cloudflare Hyperdrive**. El almacén de disponibilidad es un **Durable Object con SQLite** (opción B, confirmada en el Sprint 0; ver sección 5.3). Los resultados y las mediciones del Sprint 0 están en `docs/compatibilidad-cloudflare.md`.
 
 | Pieza | Tecnología / servicio | Estado |
 |---|---|---|
-| Frontend | Next.js desplegado en Cloudflare con Wrangler | Plataforma fijada; compatibilidad de Next.js a validar en el Sprint 0. Plan B: Vercel |
-| Backend | NestJS (TypeScript, adaptador Express) sobre Cloudflare Workers | Plataforma fijada; compatibilidad de NestJS a validar en el Sprint 0. Plan B: Hono |
-| Base de datos | PostgreSQL en Neon + Prisma | **Fijada** |
-| Caché / concurrencia | Opción A: Redis en Upstash (REST + Lua). Opción B: Durable Object con SQLite en Cloudflare | **Por decidir en el Sprint 0** |
+| Frontend | Next.js en Cloudflare con `@opennextjs/cloudflare` y Wrangler | **Validado en el Sprint 0** (prueba 2). Se compila y despliega desde Linux (CI): en Windows el build de OpenNext falla |
+| Backend | NestJS (TypeScript, adaptador Express) sobre Cloudflare Workers | **Validado en el Sprint 0** (prueba 1), con NestJS y Prisma inicializados en el ámbito global del Worker |
+| Base de datos | PostgreSQL en Neon + Prisma 7 con `@prisma/adapter-pg`, por Cloudflare Hyperdrive (caché de consultas desactivado) | **Fijada y validada** (prueba 3) |
+| Caché / concurrencia | Durable Object `Inventario` con SQLite en Cloudflare (opción B). Upstash queda solo como respaldo no implementado | **Decidido en el Sprint 0** (prueba 4) |
 | IA | API de un LLM (Claude) tras un adaptador intercambiable | Fijada |
+| Herramientas | Node.js 24 en local y en la CI (`.nvmrc`, `engines`), pnpm workspaces, Vitest, TypeScript estricto | Fijadas en el Sprint 0 |
 
 ### 2.0 Principio de validación de compatibilidad
 
@@ -27,18 +28,20 @@ Cloudflare es la plataforma, pero **ningún supuesto de compatibilidad se da por
 ### 2.0.1 Cómo corre NestJS en Workers
 
 - Los Workers no ejecutan un servidor Node tradicional. Se usa `node:http` con `httpServerHandler` de `cloudflare:node`: NestJS se inicializa una vez por instancia del Worker y sus peticiones se enrutan al servidor HTTP. El puerto que se pasa a `listen()` es solo una clave de enrutamiento, no un puerto de red.
+- NestJS y el cliente de Prisma se inicializan en el **ámbito global del módulo** (`await` de nivel superior en `src/worker.ts`), sin E/S. Así esa CPU cuenta como arranque de la instancia y no como CPU de la primera petición (Sprint 0, prueba 1: la primera petición bajó de 32–128 ms a 10–18 ms de CPU).
+- Prisma usa **un `PrismaClient` por instancia y una conexión `pg` por petición**: toda consulta pasa por `conPrisma()` (`src/datos/prisma.ts`), que abre la conexión de esa llamada y la cierra al terminar. Crear un cliente por petición costaba de 14 a 24 ms de CPU en cada consulta.
 - Con fecha de compatibilidad `2026-08-04` o posterior no hace falta ningún flag de Node.js (`nodejs_compat` viene activado). Con fechas anteriores habría que agregarlo.
 - Soportado: `http`, `https`, `crypto`, `buffer`, `stream`, `events`, `url`, `path`, `process`, `util`, `zlib`, Web Crypto. `net` solo para conexiones TCP salientes (`net.Server` no existe). `child_process`, `worker_threads`, `cluster`, `vm` y similares son stubs que no funcionan.
-- No hay eventos `upgrade` (sin WebSockets), ni trailers, ni acceso real al socket. Por eso `req.socket.remoteAddress` y `req.ip` **no sirven** para obtener la IP del cliente (ver 2.2).
+- No hay eventos `upgrade` (sin WebSockets), ni trailers, ni acceso real al socket. La IP del cliente se lee de `CF-Connecting-IP` (ver 2.2). En el Sprint 0, `req.socket.remoteAddress` devolvió el mismo valor, pero no es un comportamiento documentado y no se usa.
 - Cada petición puede ejecutarse en una instancia distinta y efímera del Worker: **no se guarda estado en memoria entre peticiones**.
 - La documentación no nombra a NestJS, Express ni Fastify. Que funcionen es una hipótesis que se valida en el Sprint 0.
 
 ### 2.1 Notas operativas y límites
 
-- **Workers, plan gratuito** (documentación de Cloudflare; reconfirmar antes de la demo): 100.000 peticiones al día (se reinicia a las 00:00 UTC), 10 ms de CPU por petición (la espera de red no cuenta, el hash de contraseñas sí), 50 subrequests por petición (cada `fetch` cuenta, incluidas las llamadas a Redis por REST), 128 MB de memoria, 5 Cron Triggers por cuenta, 64 MiB de tamaño del Worker sin comprimir.
-- **Durable Objects, plan gratuito** (solo con almacenamiento SQLite): 100.000 peticiones al día, 13.000 GB-s de duración al día, 5 millones de filas leídas al día, 100.000 filas escritas al día y 5 GB almacenados. Relevante solo si se elige la opción B.
-- **Neon:** 100 CU-hours por proyecto al mes; el cómputo se suspende tras 5 min sin actividad y eso no se puede cambiar. La primera petición tras un rato sin tráfico despierta la base de datos; configurar un tiempo de espera de conexión razonable. Neon requiere dos cadenas de conexión: una para la app y otra directa para las migraciones.
-- **Upstash** (solo si se elige la opción A): 500K comandos al mes en el plan gratuito. Las pruebas repetidas de concurrencia se hacen contra un Redis local, no contra Upstash en la nube.
+- **Workers, plan gratuito** (documentación de Cloudflare; reconfirmar antes de la demo): 100.000 peticiones al día (se reinicia a las 00:00 UTC), 10 ms de CPU por petición (la espera de red no cuenta, el hash de contraseñas sí), 50 subrequests por petición (cada `fetch` y cada llamada a un Durable Object cuentan; una reserva usa 1, medido en el Sprint 0), 128 MB de memoria, 5 Cron Triggers por cuenta, 64 MiB de tamaño del Worker sin comprimir.
+- **Durable Objects, plan gratuito** (solo con almacenamiento SQLite): 100.000 peticiones al día, 13.000 GB-s de duración al día, 5 millones de filas leídas al día, 100.000 filas escritas al día y 5 GB almacenados. Una reserva de un producto escribe 4 filas (~25.000 reservas por día).
+- **Neon:** 100 CU-hours por proyecto al mes; el cómputo se suspende tras 5 min sin actividad y eso no se puede cambiar. La primera petición tras un rato sin tráfico despierta la base de datos; configurar un tiempo de espera de conexión razonable. La cadena directa de Neon se usa para Hyperdrive y para las migraciones (`DIRECT_URL`); el Worker no tiene ninguna cadena de conexión.
+- **Hyperdrive, plan gratuito:** 100.000 consultas al día (leídas o escritas; se reinicia a las 00:00 UTC y, al superarlo, las consultas fallan), ~20 conexiones al origen por configuración y consultas de hasta 60 s. El caché de consultas está **desactivado**, para que el stock y las sesiones se lean siempre actuales.
 - **Endpoints de salud:** `GET /health/live` (sin dependencias, responde 200) y `GET /health/ready` (verifica Postgres y el almacén de disponibilidad; 503 si alguno falla; solo para CI y uso manual). En Workers no hay arranque en frío de un servicio dormido, por lo que **no se necesita monitor externo**.
 - Docker queda para desarrollo local, pruebas de integración y pruebas de carga. El backend se ejecuta en local con `wrangler dev`.
 - El proyecto no envía correos: las notificaciones son dentro de la aplicación. No hay proveedor de correo ni configuración SPF/DKIM.
@@ -48,7 +51,7 @@ Cloudflare es la plataforma, pero **ningún supuesto de compatibilidad se da por
 
 **Dominio y DNS.** Dominio propio `xdtech.store` con DNS en Cloudflare.
 - API: `api.xdtech.store`, configurado como **Custom Domain del Worker** (Cloudflare gestiona el registro y el certificado; validar en el Sprint 0).
-- Frontend: `xdtech.store` o `app.xdtech.store`, también como Custom Domain en Cloudflare. Si el Sprint 0 obliga al plan B (Vercel), el frontend se sirve desde Vercel con el DNS en Cloudflare: nube gris, o nube naranja con SSL "Full (strict)" y sin caché para respuestas con `Set-Cookie`.
+- Frontend: `xdtech.store`, también como Custom Domain en Cloudflare; `www.xdtech.store` redirige con 308 al dominio principal.
 - Ambos subdominios son del mismo sitio para el navegador: no hay proxy desde Next.js ni cookies de terceros.
 
 **Sesión.** Cookie de sesión con identificador opaco; la sesión se guarda en Postgres (tabla `sesiones`).
@@ -63,8 +66,8 @@ Cloudflare es la plataforma, pero **ningún supuesto de compatibilidad se da por
 - **Registro:** límite por IP. Limitar por correo no protege, porque quien abusa cambia de correo en cada intento.
 - **Inicio de sesión:** límite por correo (cuenta solo los intentos **fallidos** y se borra al acertar) y, además, un límite por IP más holgado.
 - **Asistente de IA:** límite por usuario autenticado, contado a partir de las filas de `uso_asistente` de las últimas 24 horas (dato durable en Postgres).
-- **IP real del cliente:** se lee del encabezado `CF-Connecting-IP` que agrega Cloudflare. **No usar `req.ip`, `req.socket.remoteAddress` ni `trust proxy`**: en Workers el socket es simulado.
-- **Dónde viven los contadores de registro e inicio de sesión:** en el almacén de disponibilidad elegido en el Sprint 0. Opción A: Upstash con `INCR` más `EXPIRE`, solo en esas dos rutas. Opción B: un Durable Object de límites. Alternativa a evaluar en cualquiera de los dos casos: el límite de peticiones propio de Cloudflare, si el plan gratuito lo permite (no verificado). **Nunca en memoria del Worker** (cada petición puede caer en otra instancia) **ni en KV** (es eventualmente consistente y no sirve para contadores).
+- **IP real del cliente:** se lee del encabezado `CF-Connecting-IP` que agrega Cloudflare (validado en el Sprint 0). **No usar `req.ip`, `req.socket.remoteAddress` ni `trust proxy`**: en Workers el socket es simulado. Llegan direcciones IPv6: los límites por IP agrupan los intentos por prefijo /64.
+- **Dónde viven los contadores de registro e inicio de sesión:** en el Durable Object `Limites` (binding `LIMITES`, declarado en el Sprint 0), separado de `Inventario` para no sumar carga al objeto de reservas. **Nunca en memoria del Worker** (cada petición puede caer en otra instancia) **ni en KV** (es eventualmente consistente y no sirve para contadores).
 - Los valores concretos son configurables por variables de entorno (ver sección 7).
 
 ## 3. Estructura del repositorio
@@ -82,7 +85,7 @@ repo/
         compatibilidad/  motor de reglas
         asistente/       adaptador de IA y respaldo determinístico
         carrito/
-        reservas/        almacén de disponibilidad (Lua u objeto Durable) y reconciliación
+        reservas/        almacén de disponibilidad (Durable Object Inventario) y reconciliación
         pagos/           pago simulado y comprobantes
         notificaciones/
         historial/
@@ -93,7 +96,7 @@ repo/
     compatibilidad-cloudflare.md   resultados de las pruebas de humo del Sprint 0
   tests/
     k6/                  escenarios de carga
-  docker-compose.yml     Postgres y Redis locales
+  docker-compose.yml     Postgres local (los Durable Objects corren en `wrangler dev`)
   .github/workflows/     integración continua y despliegue con Wrangler
 ```
 
@@ -122,7 +125,7 @@ Un equipo armado se registra como producto propio con su propio stock.
 
 ## 5. Reglas de concurrencia (no negociables)
 
-En los sprints, "Redis" designa al **almacén de disponibilidad** elegido en el Sprint 0 (Redis en Upstash u objeto Durable). Las reglas son las mismas con cualquiera de las dos opciones.
+El **almacén de disponibilidad** es el Durable Object `Inventario` (sección 5.2), elegido en el Sprint 0. Todo el código accede a él a través del puerto `DisponibleService`, de modo que cambiar de almacén solo cambiaría su implementación.
 
 1. **Postgres guarda la verdad**: stock físico y compras confirmadas.
 2. **El almacén de disponibilidad guarda el disponible para vender** = stock físico − reservas activas.
@@ -135,24 +138,29 @@ En los sprints, "Redis" designa al **almacén de disponibilidad** elegido en el 
 9. **Idempotencia**: cada confirmación exige el encabezado `Idempotency-Key`; una restricción de unicidad en `ordenes` hace que un reintento devuelva la orden original.
 10. La IA **nunca** participa en concurrencia ni en cobro.
 
-### 5.1 Opción A: Redis en Upstash con Lua
+### 5.1 Opción A: Redis en Upstash con Lua (respaldo, no implementada)
+
+Se conserva como referencia por si la opción B dejara de servir. No se implementó, porque la B pasó las pruebas del Sprint 0.
 
 - Estructuras: contador de disponible por producto (`disp:{productoId}`), registro por reserva con TTL (`reserva:{id}`), índice ordenado por vencimiento (`reservas:vencimientos`).
 - La reserva y la expiración son scripts Lua (`reservar.lua`, `expirar.lua`) ejecutados con `eval`/`evalsha`; Redis los procesa de forma indivisible.
 - Cliente HTTP `@upstash/redis` (no `ioredis`). Cada llamada cuenta como un subrequest; el script Lua cuenta como una.
 - La reconstrucción perezosa usa `SET ... NX`.
 
-### 5.2 Opción B: Durable Object con SQLite
+### 5.2 Opción B: Durable Object con SQLite (elegida)
 
 - Un único Durable Object `Inventario` para todo el catálogo, de modo que la reserva de varios productos sea atómica (un Durable Object procesa sus peticiones una por una). Cada reserva pasa por ese único objeto: es el posible cuello de botella a medir en el Sprint 0.
 - Almacenamiento SQLite del objeto: `disponible(producto_id, cantidad)`, `reservas(id, vence_en)` y `reserva_items(reserva_id, producto_id, cantidad)`.
 - Métodos: `reservar(items, vencimiento)`, `expirar()`, `cerrar(reservaId)`, `reconstruir(productoId, cantidad)` y `consultar(productoId)`. La expiración la invocan el Cron Trigger y cada `reservar`.
-- Cada reserva escribe varias filas (la reserva, sus ítems y las actualizaciones del disponible); el límite gratuito es de 100.000 filas escritas al día, a medir en el Sprint 0.
+- Cada reserva escribe 2 + 2·N filas para N productos (4 con un producto, con tablas `WITHOUT ROWID`); el límite gratuito es de 100.000 filas escritas al día.
+- Medido en producción en el Sprint 0: 300 reservas concurrentes sobre 5 unidades dan exactamente 5; espera en el objeto p50 132 ms y p95 383 ms; 1 subrequest por reserva.
 - Sin cuota mensual de comandos, y una pieza externa menos. Las pruebas locales corren en el Durable Object local de `wrangler dev`.
 
-### 5.3 Cómo se decide (Sprint 0)
+### 5.3 Cómo se decidió (Sprint 0)
 
-El agente prueba ambas opciones con Wrangler y registra los resultados en `docs/compatibilidad-cloudflare.md`:
+**Resultado: se eligió la opción B.** Pasó los cuatro criterios con margen y no suma una pieza externa. Como la B pasó, la A no llegó a prototiparse. Detalle en `docs/compatibilidad-cloudflare.md`, sección "Confirmación de la opción B".
+
+Criterios aplicados. El plan original era probar ambas opciones con Wrangler y registra los resultados en `docs/compatibilidad-cloudflare.md`:
 1. **Atomicidad**: 300 intentos concurrentes de reservar el mismo componente de 5 unidades dan exactamente 5 reservas; una reserva de varios productos es todo o nada.
 2. **Funcionamiento en Workers**: Lua por REST funciona (opción A) o el Durable Object funciona con la configuración de Wrangler (opción B).
 3. **Consumo**: comandos por reserva y proyección mensual (opción A) o filas escritas y peticiones por día (opción B).
@@ -167,10 +175,10 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 - Guardas por rol en todo endpoint administrativo.
 - Cloudflare y Wrangler: `wrangler.jsonc` versionado y sin secretos; `compatibility_date` igual o posterior a `2026-08-04`; secretos con `wrangler secret put` en producción y `.dev.vars` (en `.gitignore`) en local; despliegue con `wrangler deploy`, manual o desde CI con `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` como secretos de GitHub.
 - Mantener `.env.example` y `.dev.vars.example` actualizados. Nunca versionar secretos.
-- Compatibilidad con Workers: sin binarios nativos (por ejemplo `argon2` o `bcrypt` nativos), sin `fs`, `child_process` ni `worker_threads`, sin estado en memoria entre peticiones, sin WebSockets. Hash de contraseñas con una implementación JS/WASM o con Web Crypto (PBKDF2), midiendo el tiempo de CPU (sección 2.1). Cliente de base de datos con el adaptador de Prisma para Neon, validado en el Sprint 0.
+- Compatibilidad con Workers: sin binarios nativos (por ejemplo `argon2` o `bcrypt` nativos), sin `fs`, `child_process` ni `worker_threads`, sin estado en memoria entre peticiones, sin WebSockets. Hash de contraseñas con Web Crypto: **PBKDF2-SHA256 con 50.000 iteraciones** (~6,5 ms de CPU; Workers no admite más de 100.000), guardado como `pbkdf2$<iteraciones>$<sal>$<hash>`. Cliente de base de datos: Prisma con `@prisma/adapter-pg` por Hyperdrive, siempre a través de `conPrisma()` (sección 2.0.1).
 - Tareas programadas con Cron Triggers (handler `scheduled`), no con `@nestjs/schedule`.
 - Sesiones por cookie `httpOnly` guardadas en Postgres, con vencimiento (sección 2.2).
-- Límite de peticiones: registro (por IP), inicio de sesión (por correo y por IP) y asistente de IA (por usuario). Los contadores de registro e inicio de sesión viven en el almacén elegido en el Sprint 0; el del asistente se cuenta desde `uso_asistente` en Postgres (sección 2.2).
+- Límite de peticiones: registro (por IP), inicio de sesión (por correo y por IP) y asistente de IA (por usuario). Los contadores de registro e inicio de sesión viven en el Durable Object `Limites`; el del asistente se cuenta desde `uso_asistente` en Postgres (sección 2.2).
 - Cuidar los subrequests (máximo 50 por petición) y la CPU (10 ms en el plan gratuito): una reserva debe resolverse con pocas llamadas.
 - Pruebas unitarias junto a cada módulo; pruebas de integración contra Postgres y el almacén de disponibilidad reales en local; pruebas de extremo a extremo con `wrangler dev`.
 - No introducir tecnologías fuera del stack (sin colas de mensajes, sin balanceador, sin otra base de datos).
@@ -229,9 +237,9 @@ Plan de recorte si el tiempo se acorta: mantener siempre concurrencia (Sprint 3)
 - **Efecto en los documentos:** se elimina HU-03 y la tabla `tokens_recuperacion`; no existen los endpoints `/auth/recuperar` ni `/auth/restablecer`.
 
 ### Desviaciones respecto a la propuesta original (para el informe)
-- **Se mantiene:** Node.js, NestJS (salvo que el Sprint 0 obligue al plan B), PostgreSQL, claves de idempotencia, bloqueo optimista y el servicio de IA generativa.
+- **Se mantiene:** Node.js, NestJS, PostgreSQL, claves de idempotencia, bloqueo optimista y el servicio de IA generativa.
 - **Cambia el despliegue:** el backend corre sobre Cloudflare Workers, que ya es serverless y escala sin estado, en lugar de instancias Docker detrás de NGINX. La cola BullMQ para expirar reservas se reemplaza por Cron Triggers más la expiración perezosa en cada reserva. Se usan planes gratuitos en lugar del hardware sugerido en la propuesta.
-- **Caché de concurrencia:** la propuesta plantea Redis con scripts Lua. Esa opción se mantiene como opción A; como opción B se evalúa un Durable Object de Cloudflare. La decisión final y sus mediciones constan en `docs/compatibilidad-cloudflare.md`.
+- **Caché de concurrencia:** la propuesta plantea Redis con scripts Lua. En su lugar se usa un Durable Object de Cloudflare con SQLite: sus peticiones se procesan una por una, así que da la misma atomicidad que un script Lua, sin una pieza externa. La decisión y sus mediciones constan en `docs/compatibilidad-cloudflare.md`.
 - **Justificación:** el escalado horizontal sin estado que pedía la propuesta lo da la plataforma sin balanceador propio, y el plan se ajusta al presupuesto gratuito y a un solo desarrollador. Confirmar con el docente si la propuesta es vinculante en este punto.
 
 ### Criterio de trazabilidad
@@ -241,28 +249,30 @@ Al cerrar el proyecto, RF-03 se reporta como "diferido con justificación", no c
 
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
-| NestJS no corre bien en Workers (tamaño del bundle, arranque, compatibilidad) | Hay que rehacer la estructura del backend | Prueba de humo en el Sprint 0 con medición de arranque y CPU; plan B: Hono con la misma estructura de módulos y servicios puros |
-| Next.js no es compatible con el despliegue en Cloudflare | El frontend no se puede servir ahí | Prueba de humo en el Sprint 0; plan B: Vercel con el DNS en Cloudflare |
-| 10 ms de CPU por petición en el plan gratuito (hash de contraseñas, validaciones) | Peticiones rechazadas o lentas | Medir en el Sprint 0; ajustar el algoritmo; si no cabe, evaluar el plan de pago de Workers |
+| 10 ms de CPU por petición en el plan gratuito (hash de contraseñas, validaciones) | Peticiones rechazadas o lentas | Medido en el Sprint 0: NestJS y Prisma inicializados en el ámbito global, un `PrismaClient` por instancia y PBKDF2 con 50.000 iteraciones. Lo que aún pasa de 10 ms es la primera consulta de cada instancia (20–39 ms). Se vigila con `wrangler tail` y con el escenario de carga del Sprint 3 |
+| 100.000 consultas al día de Hyperdrive en el plan gratuito | Las consultas fallan hasta las 00:00 UTC | Pocas consultas por petición y por ejecución del cron de cada minuto (1.440 al día); vigilar el consumo antes de la demo |
+| La protección del borde de Cloudflare responde 429 a muchas peticiones simultáneas desde una sola IP | Una prueba de carga lanzada desde una máquina no llega al Worker | En el Sprint 0, 300 peticiones simultáneas desde una IP recibieron 429 en `api.xdtech.store`. Las pruebas de carga se lanzan contra `*.workers.dev` o se ajusta la regla de la zona |
 | 100.000 peticiones al día en el plan gratuito | La API deja de responder a mitad del día | Pruebas de carga en local con `wrangler dev`; vigilar el consumo antes de la demo |
 | 50 subrequests por petición | Operaciones largas fallan | Pocas llamadas por operación; medir en el Sprint 0 |
-| Opción A: agotar los comandos mensuales de Upstash o Lua por REST no funciona | Las reservas dejan de funcionar | Medición temprana en el Sprint 0, pruebas repetidas en Redis local, contadores solo en registro e inicio de sesión; plan B: opción B |
-| Opción B: el Durable Object único es un cuello de botella o supera las filas escritas al día | Reservas lentas o rechazadas | Medir latencia y filas escritas en el Sprint 0 con 300 usuarios concurrentes |
+| El Durable Object único es un cuello de botella o supera las filas escritas al día | Reservas lentas o rechazadas | Medido en el Sprint 0: p95 383 ms con 300 concurrentes y 4 filas por reserva; repetir con el escenario k6 del Sprint 3. Respaldo: opción A (sección 5.1) detrás del mismo puerto |
 | El almacén de disponibilidad pierde datos | Contadores de disponible incorrectos | Tabla de reservas en Postgres, reconstrucción perezosa por producto y reconciliación periódica |
 | Neon suspendido al primer acceso | Primera petición lenta | Tiempo de espera razonable en la conexión; calentar la base de datos antes de la demo |
 | La IA propone configuraciones inválidas | Mala experiencia | El motor de reglas siempre valida; un reintento con los motivos; respaldo determinístico |
 | La API de IA falla o se encarece | Asistente no disponible | Timeout, límite por usuario, proveedor intercambiable y respaldo determinístico |
-| La cookie entre subdominios o la lectura de `CF-Connecting-IP` no funcionan | Sesiones o límites de peticiones rotos | Pruebas de humo en el Sprint 0, con plan B documentado antes del Sprint 1 |
 | Cambios en los planes gratuitos | Despliegue inestable | Confirmar límites antes de la demo; mantener la opción de ejecutar el backend con `wrangler dev` y Docker local |
 | El dominio es el único costo | `xdtech.store` no disponible al empezar | Comprarlo y configurar su DNS en Cloudflare antes del Sprint 0 |
 | Alcance excesivo para 8 semanas | Retrasos | Concurrencia y compra primero; reportes y refinamientos al final (plan de recorte en la sección 9) |
 
-## 12. Decisiones: fijadas, por decidir y planes B
+## 12. Decisiones fijadas
+
+Todas validadas en el Sprint 0 (`docs/compatibilidad-cloudflare.md`).
 
 | Tema | Estado | Detalle |
 |---|---|---|
-| Plataforma de despliegue | **Fijada** | Cloudflare, con el CLI Wrangler |
-| Base de datos | **Fijada** | PostgreSQL en Neon, con Prisma |
-| Framework del backend | Por validar | NestJS; plan B Hono si el Sprint 0 lo exige |
-| Frontend | Por validar | Next.js en Cloudflare; plan B Vercel |
-| Caché de concurrencia | **Por decidir** | Opción A (Upstash con Lua) u opción B (Durable Object), con la regla de la sección 5.3 |
+| Plataforma de despliegue | **Fijada** | Cloudflare, con el CLI Wrangler; despliegue automático desde la CI en `main` |
+| Base de datos | **Fijada** | PostgreSQL en Neon con Prisma 7 y `@prisma/adapter-pg`, por Hyperdrive con el caché desactivado |
+| Framework del backend | **Fijada** | NestJS (Hono descartado) |
+| Frontend | **Fijada** | Next.js en Cloudflare con OpenNext (Vercel descartado) |
+| Caché de concurrencia | **Fijada** | Durable Object `Inventario` con SQLite (opción B); Upstash solo como respaldo |
+| Hash de contraseñas | **Fijada** | PBKDF2-SHA256 con Web Crypto, 50.000 iteraciones |
+| Sesión e IP | **Fijada** | Cookie `Domain=.xdtech.store` (Chrome, Brave y Firefox) e IP desde `CF-Connecting-IP` |

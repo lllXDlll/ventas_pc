@@ -7,14 +7,8 @@ context: |
   - docs/01_arquitectura_despliegue.md: arquitectura de alto y bajo nivel en Cloudflare.
   - docs/sprint_0X_*.md: historias de usuario. Lee solo el del sprint actual
     y no adelantes funcionalidades de sprints posteriores.
-  - docs/compatibilidad-cloudflare.md (cuando exista): resultados y decisiones
-    del Sprint 0. Ningún sprint se apoya en un supuesto sin resultado OK.
-  Decisiones tomadas por el desarrollador que prevalecen sobre docs/ hasta que
-  se actualicen:
-  - Node 24 en local y CI.
-  - Postgres en Neon accedido desde el Worker mediante Cloudflare Hyperdrive.
-  - Almacén de disponibilidad: opción B (Durable Object con SQLite en Cloudflare);
-    Upstash solo como respaldo si B no pasa las pruebas del Sprint 0.
+  - docs/compatibilidad-cloudflare.md: resultados y decisiones del Sprint 0.
+    Ningún sprint se apoya en un supuesto sin resultado OK.
   Escribe todos los artefactos en español.
 
 # Project context (optional)

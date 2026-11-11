@@ -66,7 +66,7 @@
 ## 8. Cierre del sprint
 
 - [ ] 8.1 Eliminar los endpoints temporales de cookie e IP (y el prototipo de Upstash, si llegó a hacerse y se descartó); se verifica con 404 en esas rutas en la versión desplegada y la CI en verde
-- [ ] 8.2 Actualizar `docs/00_parte_tecnica.md`, `docs/01_arquitectura_despliegue.md` y los sprints afectados (0, 1, 3, 6 y 7) con Hyperdrive, la opción B y cualquier otro plan B elegido, y quitar del `context` de `openspec/config.yaml` las decisiones que ya estén en docs/; se verifica con una búsqueda de `Upstash` y `adapter-neon` sin referencias vigentes
+- [x] 8.2 Actualizar `docs/00_parte_tecnica.md`, `docs/01_arquitectura_despliegue.md` y los sprints afectados (0, 1, 3, 6 y 7) con Hyperdrive, la opción B y cualquier otro plan B elegido, y quitar del `context` de `openspec/config.yaml` las decisiones que ya estén en docs/; se verifica con una búsqueda de `Upstash` y `adapter-neon` sin referencias vigentes
 - [ ] 8.3 Verificar la definición de hecho del Sprint 0: Worker en `api.xdtech.store`, frontend en su dominio, CI en verde con despliegue automático, esquema migrado en Neon, nueve pruebas registradas y decisión del almacén registrada; se verifica recorriendo la lista contra el entorno desplegado
 
 ## Workflow follow-up
