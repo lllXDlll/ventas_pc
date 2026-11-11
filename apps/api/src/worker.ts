@@ -7,7 +7,7 @@ import { httpServerHandler } from 'cloudflare:node';
 import { env } from 'cloudflare:workers';
 import express from 'express';
 import { crearApp } from './app';
-import { precalentarPrisma } from './datos/prisma';
+import { enPeticion, precalentarPrisma } from './datos/prisma';
 import { despachar } from './programadas/despacho';
 
 export { Inventario } from './reservas/inventario';
@@ -47,6 +47,8 @@ const servidor = createServer((req, res) => {
 servidor.listen(PUERTO);
 
 const http = httpServerHandler({ port: PUERTO });
+const fetchHttp = http.fetch;
+if (!fetchHttp) throw new Error('httpServerHandler no devolvió un handler fetch');
 
 // Prueba 1 (opción a): NestJS se inicializa al cargar el módulo. Esa CPU cuenta como
 // tiempo de arranque del isolate y no como CPU de la primera petición. La
@@ -67,7 +69,12 @@ try {
 }
 
 export default {
-  fetch: http.fetch,
+  // Una conexión a Postgres por petición HTTP; se cierra con waitUntil tras responder.
+  fetch: (request, env, ctx) =>
+    enPeticion(
+      async () => fetchHttp(request, env, ctx),
+      (cierre) => ctx.waitUntil(cierre),
+    ),
   async scheduled(controller, _env, ctx) {
     ctx.waitUntil(despachar(controller.cron).then(() => undefined));
   },

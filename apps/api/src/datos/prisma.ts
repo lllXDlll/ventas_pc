@@ -7,7 +7,8 @@
 //   el esquema de parametrización, construye un QueryCompiler nuevo y empieza con la
 //   caché de planes vacía.
 // El cliente global usa un adaptador que delega cada operación en la conexión de la
-// petición en curso, que se guarda en AsyncLocalStorage y se cierra al terminar conPrisma().
+// petición en curso, guardada en AsyncLocalStorage: una por petición HTTP (enPeticion(),
+// desde worker.ts) o una por llamada a conPrisma() fuera de una petición.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { env } from 'cloudflare:workers';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -89,25 +90,58 @@ export async function precalentarPrisma(): Promise<void> {
   await prismaDelIsolate().$connect();
 }
 
+async function cerrar(conexion: ConexionDePeticion): Promise<void> {
+  if (!conexion.adaptador) return;
+  const adaptador = conexion.adaptador;
+  conexion.adaptador = undefined;
+  await adaptador.then(
+    (a) => a.dispose(),
+    () => undefined, // si la conexión no llegó a abrirse, no hay nada que cerrar
+  );
+}
+
 /**
- * Ejecuta `fn` con el cliente del isolate y una conexión propia de esta llamada,
- * que se cierra al terminar. Llamadas concurrentes no comparten conexión.
+ * Ejecuta `fn` (el manejo de una petición HTTP) con una conexión compartida por todas
+ * las llamadas a `conPrisma()` que haga (design.md D1 del Sprint 1: cada conexión nueva
+ * cuesta ~4 ms de CPU por la autenticación SCRAM). La conexión se abre con la primera
+ * consulta y se cierra al terminar `fn`; si se pasa `alTerminar`, el cierre se le
+ * entrega (por ejemplo `ctx.waitUntil`) para no retrasar la respuesta.
+ *
+ * Dentro de una petición las consultas comparten la conexión: no lanzar consultas en
+ * paralelo dentro de una transacción interactiva (fuera de ella, `pg` las encola).
  */
-export function conPrisma<T>(
-  fn: (prisma: PrismaClient) => Promise<T>,
+export function enPeticion<T>(
+  fn: () => Promise<T>,
+  alTerminar?: (cierre: Promise<void>) => void,
   cadena: string = env.HYPERDRIVE.connectionString,
 ): Promise<T> {
   const conexion: ConexionDePeticion = { cadena };
   return contexto.run(conexion, async () => {
     try {
-      return await fn(prismaDelIsolate());
+      return await fn();
     } finally {
-      if (conexion.adaptador) {
-        await conexion.adaptador.then(
-          (a) => a.dispose(),
-          () => undefined, // si la conexión no llegó a abrirse, no hay nada que cerrar
-        );
-      }
+      const cierre = cerrar(conexion);
+      if (alTerminar) alTerminar(cierre);
+      else await cierre;
     }
   });
+}
+
+/**
+ * Ejecuta `fn` con el cliente del isolate. Dentro de `enPeticion()` reutiliza la conexión
+ * de la petición; fuera (cron, scripts, pruebas) abre una propia y la cierra al terminar.
+ * Llamadas concurrentes de peticiones distintas nunca comparten conexión.
+ */
+export function conPrisma<T>(
+  fn: (prisma: PrismaClient) => Promise<T>,
+  cadena?: string,
+): Promise<T> {
+  if (contexto.getStore() && cadena === undefined) return fn(prismaDelIsolate());
+  return enPeticion(() => fn(prismaDelIsolate()), undefined, cadena);
+}
+
+/** Solo para pruebas: si hay una conexión de petición activa y si ya se abrió. */
+export function estadoConexion(): { activa: boolean; abierta: boolean } {
+  const conexion = contexto.getStore();
+  return { activa: conexion !== undefined, abierta: conexion?.adaptador !== undefined };
 }
