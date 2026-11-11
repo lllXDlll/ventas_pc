@@ -1,0 +1,18 @@
+node_modules
+pnpm-lock.yaml
+dist
+.next
+.open-next
+.wrangler
+coverage
+apps/api/src/generated
+docs
+openspec
+.agents
+.claude
+apps/api/worker-configuration.d.ts
+
+# Builds del frontend
+apps/web/.next
+apps/web/.open-next
+apps/web/next-env.d.ts

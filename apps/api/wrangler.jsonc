@@ -1,0 +1,42 @@
+// Configuración del Worker de la API. Versionada y SIN secretos.
+// Los valores locales se sobrescriben en .dev.vars (ver .dev.vars.example).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "xdtech-api",
+  // Wrangler empaqueta la salida de tsc: esbuild no emite emitDecoratorMetadata,
+  // que la inyección de dependencias de NestJS necesita (design.md, D2).
+  "main": "dist/worker.js",
+  "build": {
+    "command": "pnpm run build:ts",
+    "watch_dir": "src",
+  },
+  // Dependencias opcionales de NestJS que no se usan (sin WebSockets en Workers).
+  "alias": {
+    "@nestjs/microservices": "./dist/comun/modulo-vacio.js",
+    "@nestjs/microservices/microservices-module.js": "./dist/comun/modulo-vacio.js",
+    "@nestjs/websockets/socket-module.js": "./dist/comun/modulo-vacio.js",
+  },
+  // >= 2026-08-04: nodejs_compat viene activado sin flag.
+  "compatibility_date": "2026-11-01",
+  "observability": {
+    "enabled": true,
+  },
+  // Deben coincidir con HORARIOS en src/programadas/despacho.ts (lo verifica una prueba).
+  "triggers": {
+    "crons": ["* * * * *", "*/5 * * * *", "0 4 * * *"],
+  },
+  // Valores de producción. En local, .dev.vars los sobrescribe.
+  "vars": {
+    "COOKIE_DOMAIN": ".xdtech.store",
+    "FRONTEND_ORIGIN": "https://xdtech.store",
+    "SESSION_TTL_DAYS": "7",
+    "HEALTH_TIMEOUT_MS": "3000",
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "INVENTARIO", "class_name": "Inventario" },
+      { "name": "LIMITES", "class_name": "Limites" },
+    ],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Inventario", "Limites"] }],
+}

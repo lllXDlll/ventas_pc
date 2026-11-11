@@ -1,0 +1,2 @@
+// URL pública de la API, fijada en tiempo de compilación (design.md, sección 2.6 de la arquitectura).
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787';

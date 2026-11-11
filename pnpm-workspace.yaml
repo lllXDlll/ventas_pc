@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  workerd: true
+  sharp: false
+  unrs-resolver: false

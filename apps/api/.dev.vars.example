@@ -1,0 +1,10 @@
+# Variables locales para `wrangler dev`. Copia este archivo a .dev.vars (ignorado por Git).
+# Sobrescriben los "vars" de producción definidos en wrangler.jsonc.
+
+# Sesión y CORS: en local, la cookie va sin Domain ni Secure.
+COOKIE_DOMAIN=
+FRONTEND_ORIGIN=http://localhost:3000
+SESSION_TTL_DAYS=7
+
+# Tiempo de espera de cada dependencia en GET /health/ready (ms).
+HEALTH_TIMEOUT_MS=3000

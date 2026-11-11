@@ -1,0 +1,36 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Secretos y variables locales (nunca versionar)
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Wrangler / Cloudflare
+.wrangler/
+.open-next/
+
+# Builds
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Prisma (cliente generado)
+apps/api/src/generated/
+
+# Sistema y editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+
+# Configuración local de Claude Code
+.claude/settings.local.json
