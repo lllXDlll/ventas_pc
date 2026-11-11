@@ -1,14 +1,10 @@
+import Link from 'next/link';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { API_URL } from '@/lib/api';
-import { PruebaApiCliente } from './prueba-api-cliente';
-
-// Sprint 0: página mínima para validar el despliegue (HU-36a) y la prueba 2 de
-// HU-36b: un render en servidor por petición y una llamada a la API con credenciales.
 
 async function EstadoApiServidor() {
   await connection(); // fuerza el render en cada petición
-  const renderizadoEn = new Date().toISOString();
   let estado: string;
   try {
     // Con tiempo límite: una API caída no debe dejar colgado el render.
@@ -21,21 +17,23 @@ async function EstadoApiServidor() {
     estado = 'API no alcanzable';
   }
   return (
-    <p data-prueba="ssr">
-      Render en servidor: <time dateTime={renderizadoEn}>{renderizadoEn}</time> · {estado}
+    <p data-prueba="ssr" className="tenue">
+      {estado}
     </p>
   );
 }
 
 export default function Inicio() {
   return (
-    <main style={{ maxWidth: 640, margin: '0 auto', padding: '2rem 1rem' }}>
+    <main>
       <h1>xdtech.store</h1>
-      <p>Tienda de computadoras y componentes. En construcción.</p>
-      <Suspense fallback={<p>Consultando la API…</p>}>
+      <p>Computadoras y componentes con validación de compatibilidad.</p>
+      <p style={{ margin: '1rem 0' }}>
+        <Link href="/catalogo">Ver el catálogo</Link>
+      </p>
+      <Suspense fallback={<p className="tenue">Consultando la API…</p>}>
         <EstadoApiServidor />
       </Suspense>
-      <PruebaApiCliente />
     </main>
   );
 }

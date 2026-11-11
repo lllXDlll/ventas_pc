@@ -74,3 +74,11 @@ describe('validarTipo', () => {
     expect(validarTipo('EQUIPO_ARMADO', 'COMPONENTE')).toContain('EQUIPO');
   });
 });
+
+describe('copia del frontend (apps/web/src/lib/atributos.ts)', () => {
+  it('coincide con la tabla de la API', async () => {
+    const web = await import('../../../web/src/lib/atributos');
+    expect(web.ATRIBUTOS).toEqual(ATRIBUTOS_OBLIGATORIOS);
+    expect([...web.CATEGORIAS]).toEqual([...CATEGORIAS]);
+  });
+});

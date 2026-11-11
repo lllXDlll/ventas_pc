@@ -40,7 +40,7 @@
 
 - [ ] 5.1 Cliente de la API con `credentials: 'include'` y manejo de `{ codigo, mensaje }`, y una cabecera con el estado de la sesión (`GET /auth/me`), el enlace al panel para ADMIN y el botón de cerrar sesión; se verifica con `pnpm --filter web typecheck` y con un registro, inicio y cierre de sesión manual en `wrangler dev`
 - [ ] 5.2 Páginas `/registro` e `/ingresar` que muestran los mensajes de error de la API (incluidos el 409 y el 429); se verifica de forma manual en local con un registro exitoso, un correo repetido y un inicio de sesión fallido
-- [ ] 5.3 Páginas `/catalogo` (SSR con filtros por categoría y precio y paginación) y `/catalogo/[id]` (atributos, disponibilidad y aviso de agotado); se verifica con el build de OpenNext en la CI y de forma manual en local con la semilla del catálogo cargada
+- [x] 5.3 Páginas `/catalogo` (SSR con filtros por categoría y precio y paginación) y `/catalogo/[id]` (atributos, disponibilidad y aviso de agotado); se verifica con el build de OpenNext en la CI y de forma manual en local con la semilla del catálogo cargada
 - [ ] 5.4 Panel `/admin/catalogo`: listado, alta de producto con atributos por categoría, edición de precio, estado y atributos, y stock con aviso de conflicto de versión y cantidad vigente; acceso denegado para CLIENTE; se verifica de forma manual en local con un ADMIN, con un conflicto provocado desde dos pestañas y con un CLIENTE que ve el aviso de acceso
 
 ## 6. Despliegue y verificación en producción
