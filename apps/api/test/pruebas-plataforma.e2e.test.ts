@@ -41,3 +41,13 @@ describe('endpoints temporales de las pruebas de plataforma', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('endpoints temporales de datos', () => {
+  it.each(['/__prueba/escritura-lectura', '/__prueba/reserva-ejemplo'])(
+    'POST %s sin token responde 404',
+    async (ruta) => {
+      const res = await pedir(ruta, { method: 'POST' });
+      expect(res.status).toBe(404);
+    },
+  );
+});
