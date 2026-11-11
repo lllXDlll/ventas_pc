@@ -69,11 +69,15 @@ La prueba de cookie SHALL confirmar que una cookie `httpOnly; Secure; SameSite=L
 - **THEN** la API recibe la cookie en Chrome y en el segundo navegador probado
 
 ### Requirement: IP real del cliente
-La prueba de IP SHALL confirmar que la API recibe `CF-Connecting-IP` con la IP pública del cliente en una conexión real a `api.xdtech.store`, y documentar que la IP del socket no es válida.
+La prueba de IP SHALL confirmar que la API recibe `CF-Connecting-IP` con la IP pública del cliente en una conexión real a `api.xdtech.store`, y documentar qué devuelve la IP del socket. Aunque coincida con `CF-Connecting-IP`, el sistema MUST NOT depender de la IP del socket, porque ese comportamiento no está documentado por Cloudflare.
 
 #### Scenario: Encabezado presente
 - **WHEN** un cliente real llama al endpoint temporal de IP
 - **THEN** la respuesta muestra la IP pública del cliente tomada de `CF-Connecting-IP`
+
+#### Scenario: IP del socket documentada
+- **WHEN** se registra el resultado de la prueba
+- **THEN** el registro de compatibilidad indica qué devolvió la IP del socket y que el sistema usa solo `CF-Connecting-IP`
 
 ### Requirement: Endpoints temporales eliminados
 Los endpoints creados solo para las pruebas de cookie e IP MUST NOT quedar en el código al cerrar el Sprint 0.
