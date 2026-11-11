@@ -1,6 +1,8 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import * as classTransformer from 'class-transformer';
+import * as classValidator from 'class-validator';
 import type { Express } from 'express';
 import { AppModule } from './app.module';
 import { FiltroErrores } from './comun/filtro-errores';
@@ -22,7 +24,17 @@ export async function crearApp(expressApp: Express, opciones: OpcionesApp): Prom
       cb(null, origen === opciones.origenFrontend),
     credentials: true,
   });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      // Paquetes importados de forma estática: evita el require() diferido de NestJS
+      // (loadPackage), que falla de forma intermitente en el pool de Vitest para
+      // Workers y entonces llama a process.exit(1).
+      validatorPackage: classValidator,
+      transformerPackage: classTransformer,
+    }),
+  );
   app.useGlobalFilters(new FiltroErrores());
   await app.init();
 }
