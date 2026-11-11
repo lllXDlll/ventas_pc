@@ -17,7 +17,7 @@
 
 - [x] 2.1 Función pura de clave de IP (design D6: IPv4, IPv6 a /64, `::ffff:` como IPv4 y `sin-ip`); se verifica con pruebas unitarias de cada caso de la spec `limite-peticiones`
 - [x] 2.2 Métodos `consumir`, `consultar`, `registrarFallo` y `reiniciar` del Durable Object `Limites` con SQLite y ventana fija (design D5); se verifica con pruebas en el pool de Workers: límite exacto, vencimiento de la ventana y 10 llamadas concurrentes con máximo 5 que dan exactamente 5 permitidas
-- [ ] 2.3 Servicio de límites con la lectura y validación de `LIMITE_*` (design D13) y la respuesta 429 con `DEMASIADAS_PETICIONES` y `Retry-After`; agregar las variables a `wrangler.jsonc` y `.dev.vars.example`; se verifica con pruebas unitarias de la configuración por defecto y de un valor configurado
+- [x] 2.3 Servicio de límites con la lectura y validación de `LIMITE_*` (design D13) y la respuesta 429 con `DEMASIADAS_PETICIONES` y `Retry-After`; agregar las variables a `wrangler.jsonc` y `.dev.vars.example`; se verifica con pruebas unitarias de la configuración por defecto y de un valor configurado
 
 ## 3. Autenticación y roles
 

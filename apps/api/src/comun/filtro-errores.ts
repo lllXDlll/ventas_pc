@@ -1,5 +1,6 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException } from '@nestjs/common';
 import type { Response } from 'express';
+import { DemasiadasPeticiones } from './errores';
 
 // Formato único de error de la API: { codigo, mensaje } (parte técnica, sección 6).
 
@@ -44,6 +45,9 @@ export class FiltroErrores implements ExceptionFilter {
           .status(404)
           .json({ codigo: 'NO_ENCONTRADO', mensaje: 'El recurso solicitado no existe.' });
         return;
+      }
+      if (excepcion instanceof DemasiadasPeticiones) {
+        res.setHeader('Retry-After', String(excepcion.reintentarEnS));
       }
       res.status(estado).json(aErrorApi(estado, excepcion.getResponse(), excepcion.message));
       return;

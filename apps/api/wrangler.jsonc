@@ -34,6 +34,12 @@
     "FRONTEND_ORIGIN": "https://xdtech.store",
     "SESSION_TTL_DAYS": "7",
     "HEALTH_TIMEOUT_MS": "3000",
+    // Límites de peticiones (spec limite-peticiones; sección 7 de la parte técnica).
+    "LIMITE_REGISTRO_MAX": "5",
+    "LIMITE_REGISTRO_VENTANA_MIN": "60",
+    "LIMITE_LOGIN_CORREO_MAX": "5",
+    "LIMITE_LOGIN_IP_MAX": "50",
+    "LIMITE_LOGIN_VENTANA_MIN": "15",
   },
   "durable_objects": {
     "bindings": [

@@ -8,3 +8,11 @@ SESSION_TTL_DAYS=7
 
 # Tiempo de espera de cada dependencia en GET /health/ready (ms).
 HEALTH_TIMEOUT_MS=3000
+
+# Límites de peticiones: intentos máximos y ventana en minutos (registro por IP;
+# inicio de sesión: fallos por correo e intentos por IP).
+LIMITE_REGISTRO_MAX=5
+LIMITE_REGISTRO_VENTANA_MIN=60
+LIMITE_LOGIN_CORREO_MAX=5
+LIMITE_LOGIN_IP_MAX=50
+LIMITE_LOGIN_VENTANA_MIN=15
