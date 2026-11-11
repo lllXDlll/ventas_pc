@@ -1,0 +1,97 @@
+/* Estilos globales: Tailwind v4 con los tokens de tokens.css (design D3 del Sprint 1.5). */
+/* Estilos de las pantallas del Sprint 1, en la capa de menor prioridad mientras se rediseñan. */
+@import './legado.css' layer(legado);
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
+
+/* Tokens -> utilidades de Tailwind (bg-bg, text-text-muted, border-border, ...). */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-soft: var(--secondary-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-on-color: var(--on-color);
+  --color-image-bg: var(--image-bg);
+  --color-image-icon: var(--image-icon);
+  --color-overlay: var(--overlay);
+
+  /* Variables semánticas de shadcn/ui apuntadas a nuestros tokens. */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-muted-foreground: var(--text-muted);
+  --color-ring: var(--primary-soft);
+  --color-input: var(--border);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, sans-serif;
+
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+  --radius-modal: var(--radius-modal);
+  --shadow-hover: var(--sombra-hover);
+
+  --breakpoint-sm: 360px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1280px;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+  }
+  /* Foco visible en todo elemento enfocable con teclado (spec sistema-diseno). */
+  :focus-visible {
+    outline: 2px solid var(--primary-soft);
+    outline-offset: 2px;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+}
+
+@utility contenedor {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+@utility gradiente-marca {
+  background-image: var(--gradiente-marca);
+}
+
+@utility texto-gradiente {
+  background-image: var(--gradiente-marca);
+  background-clip: text;
+  color: transparent;
+}
+
+@utility fondo-tenue {
+  background-image: var(--gradiente-tenue);
+}

@@ -28,16 +28,16 @@
 
 ## 4. Frontend: base del sistema de diseño
 
-- [ ] 4.1 Instalar Tailwind CSS v4 (`@tailwindcss/postcss`), shadcn/ui (inicialización para Tailwind v4 y React 19), lucide-react, react-hook-form, zod, `@hookform/resolvers` y `@tanstack/react-query`, respetando la antigüedad mínima de pnpm, y configurar el alias `@/` en `tsconfig.json`. Se verifica con `pnpm --filter web build` y `typecheck` en verde
-- [ ] 4.2 `styles/tokens.css` con todos los tokens, el degradado, los radios y la sombra de hover, y `globals.css` con `@theme inline` y las variables de shadcn apuntando a los tokens, sin colores `oklch` sueltos (design D3). Se verifica con una página que usa `bg-bg`, `text-text` y `bg-primary` y se ve con los colores del documento
-- [ ] 4.3 `scripts/sin-colores-sueltos.mjs`, incluido en `pnpm lint`, y las reglas de capas con `no-restricted-imports` en `eslint.config.mjs` (design D2). Se verifica agregando a propósito un `#FF0000` en un `.tsx` y un import de `@/features` en `components/ui`: los dos hacen fallar `pnpm lint`, y después se quitan
-- [ ] 4.4 Inter y Space Grotesk con `next/font/google` como `--font-sans` y `--font-display`; `lib/format.ts` con `formatoPrecio` (`es-PE`, PEN) y `formatoStock`. Se verifica con `/dev/ui`, que muestra `S/ 1,299.00` en Space Grotesk
-- [ ] 4.5 Componentes base en `components/ui`:
+- [x] 4.1 Instalar Tailwind CSS v4 (`@tailwindcss/postcss`), shadcn/ui (inicialización para Tailwind v4 y React 19), lucide-react, react-hook-form, zod, `@hookform/resolvers` y `@tanstack/react-query`, respetando la antigüedad mínima de pnpm, y configurar el alias `@/` en `tsconfig.json`. Se verifica con `pnpm --filter web build` y `typecheck` en verde
+- [x] 4.2 `styles/tokens.css` con todos los tokens, el degradado, los radios y la sombra de hover, y `globals.css` con `@theme inline` y las variables de shadcn apuntando a los tokens, sin colores `oklch` sueltos (design D3). Se verifica con una página que usa `bg-bg`, `text-text` y `bg-primary` y se ve con los colores del documento
+- [x] 4.3 `scripts/sin-colores-sueltos.mjs`, incluido en `pnpm lint`, y las reglas de capas con `no-restricted-imports` en `eslint.config.mjs` (design D2). Se verifica agregando a propósito un `#FF0000` en un `.tsx` y un import de `@/features` en `components/ui`: los dos hacen fallar `pnpm lint`, y después se quitan
+- [x] 4.4 Inter y Space Grotesk con `next/font/google` como `--font-sans` y `--font-display`; `lib/format.ts` con `formatoPrecio` (`es-PE`, PEN) y `formatoStock`. Se verifica con `/dev/ui`, que muestra `S/ 1,299.00` en Space Grotesk
+- [x] 4.5 Componentes base en `components/ui`:
   - Button, con las variantes primario, secundario, fantasma y degradado;
   - Input, Badge (éxito, advertencia, peligro, IA), Card, Skeleton, Dialog y FormField;
   - todos con foco visible.
   Se verifica con `pnpm lint` y con la vitrina de 4.6
-- [ ] 4.6 Ruta `/dev/ui` con todos los componentes, sus variantes y los estados deshabilitado, carga y error, y `robots: noindex`. Se verifica abriendo `/dev/ui` y con una prueba de Playwright que comprueba el `noindex`
+- [x] 4.6 Ruta `/dev/ui` con todos los componentes, sus variantes y los estados deshabilitado, carga y error, y `robots: noindex`. Se verifica abriendo `/dev/ui` y con una prueba de Playwright que comprueba el `noindex`
 
 ## 5. Frontend: reestructuración por capas (sin cambios visuales)
 

@@ -1,7 +1,16 @@
 import type { Metadata } from 'next';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import Link from 'next/link';
-import './globals.css';
+import '@/styles/globals.css';
 import { CabeceraSesion, ProveedorSesion } from './sesion';
+
+// Fuentes servidas por el propio sitio (next/font), expuestas como variables CSS.
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'xdtech.store',
@@ -10,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body>
         <ProveedorSesion>
           <header className="cabecera">

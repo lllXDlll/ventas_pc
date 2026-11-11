@@ -49,9 +49,9 @@ Motivación y alcance: ver proposal.md. Los requisitos están en `specs/` de est
 
 ### D1. Patrón de arquitectura del frontend
 Se combinan tres patrones conocidos y cada uno tiene una tarea concreta:
-1. **Organización por funcionalidad** (feature-based): `features/catalogo`, `features/auth` y `features/admin`, cada una con `api.ts` (llamadas tipadas), `hooks/` (TanStack Query) y `components/`.
+1. **Organización por funcionalidad** (feature-based): `features/catalogo`, `features/auth` y `features/admin`, cada una con `api.ts` (llamadas tipadas), `hooks/` (TanStack Query), `contenedores/` y `components/`.
 2. **Contenedor y presentación:**
-   - los contenedores son los hooks y los componentes `*Contenedor` de cada funcionalidad: leen datos y manejan estados;
+   - los contenedores son los hooks y los componentes de `features/<x>/contenedores/`: leen datos y manejan estados. Van en su propia carpeta para que la regla de lint distinga las dos capas (ajuste de la tarea 4.3);
    - los componentes de presentación, como `ProductCard`, `SpecsTable` y `StockBadge`, solo reciben props.
 3. **Atomic Design** en `components/ui`:
    - átomos: Button, Input, Badge y Skeleton;
@@ -77,7 +77,7 @@ Se usa `no-restricted-imports` de ESLint, con bloques por carpeta en `eslint.con
 - **`components/**` y `lib/**`:** prohibido importar `@/features/*` y `@/app/*`, y `lib/**` tampoco importa `@/components/*`.
 - **`features/<x>/**`:** prohibido importar `@/app/*` y `@/features/<otra>`. Se escribe un bloque por funcionalidad.
 - **`app/**`:** prohibido importar `@/lib/api-client`. Las rutas pasan por los `api.ts` y los hooks de cada funcionalidad.
-- **`features/*/components/**` (presentación):** prohibido importar `@/lib/api-client`, `@tanstack/react-query` y el hook de sesión. Lo que necesiten llega por props.
+- **`features/*/components/**` (presentación):** prohibido importar `@/lib/api-client`, `@tanstack/react-query` y los hooks (`@/features/*/hooks`). Lo que necesiten llega por props.
 
 El alias `@/` se configura en `tsconfig.json` y apunta a `src/`. Los imports relativos que suben de nivel (`../../features`) quedan prohibidos, para que la regla no se pueda saltar.
 

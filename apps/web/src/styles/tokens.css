@@ -1,0 +1,40 @@
+/*
+ * Tokens de diseño de XDTech (spec sistema-diseno, design D3 del Sprint 1.5).
+ * ÚNICO archivo del frontend con valores de color: el script sin-colores-sueltos lo comprueba.
+ * Tema oscuro; todos los pares texto/fondo superan WCAG AA (4,5:1).
+ */
+:root {
+  /* Superficies */
+  --bg: #0b0b12;
+  --surface: #13131f;
+  --card: #1b1b2b;
+  --border: #2a2a40;
+  /* Texto */
+  --text: #f4f4f8;
+  --text-muted: #a3a3b8;
+  /* Acción principal (morado) y secundaria (azul) */
+  --primary: #7c3aed;
+  --primary-hover: #6d28d9;
+  --primary-soft: #a78bfa;
+  --secondary: #2563eb;
+  --secondary-soft: #60a5fa;
+  /* Estados */
+  --success: #22c55e;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  /* Texto sobre botones de color y fondo claro de las imágenes de producto */
+  --on-color: #ffffff;
+  --image-bg: #f4f4f8;
+  --image-icon: #4b4b63;
+
+  /* Degradado de marca: solo logo, hero y botón "Arma tu PC con IA". */
+  --gradiente-marca: linear-gradient(135deg, #7c3aed, #2563eb);
+  --gradiente-tenue: linear-gradient(135deg, rgb(124 58 237 / 0.18), rgb(37 99 235 / 0.12));
+
+  /* Forma */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --sombra-hover: 0 0 0 1px #7c3aed, 0 8px 24px rgb(124 58 237 / 0.25);
+  --overlay: rgb(11 11 18 / 0.72);
+}
