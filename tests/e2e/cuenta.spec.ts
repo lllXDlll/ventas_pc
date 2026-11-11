@@ -49,3 +49,32 @@ test('inicio de sesión, cabecera con la sesión y cierre de sesión', async ({ 
   await page.reload();
   await expect(cabecera.getByRole('link', { name: 'Ingresar' })).toBeVisible();
 });
+
+test('el registro valida en línea y no envía un correo o una contraseña inválidos', async ({
+  page,
+}) => {
+  await page.goto('/registro');
+  const peticiones: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/auth/')) peticiones.push(r.url());
+  });
+  await page.getByLabel('Correo').fill('sin-arroba');
+  await page.getByLabel(/^Contraseña/).fill('corta');
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await expect(page.getByText('El correo no tiene un formato válido.')).toBeVisible();
+  await expect(page.getByText('La contraseña debe tener al menos 8 caracteres.')).toBeVisible();
+  expect(peticiones.filter((u) => u.includes('/auth/registro'))).toEqual([]);
+});
+
+test('@humo "¿Olvidaste tu contraseña?" lleva a /recuperar, que solo dice "Disponible pronto"', async ({
+  page,
+}) => {
+  await page.goto('/ingresar');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('link', { name: '¿Olvidaste tu contraseña?' }).click();
+  await expect(page).toHaveURL(/\/recuperar$/);
+  await expect(page.getByRole('heading', { name: 'Recuperar acceso' })).toBeVisible();
+  await expect(page.locator('main').getByText('Disponible pronto', { exact: true })).toBeVisible();
+  await expect(page.locator('main').getByRole('textbox')).toHaveCount(0);
+  await expect(page.locator('main form')).toHaveCount(0);
+});

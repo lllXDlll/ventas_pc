@@ -126,7 +126,7 @@ export function ProductosTable({
           </Select>
         </label>
       </div>
-      <div className="overflow-x-auto rounded-card border border-border">
+      <div className="relative overflow-x-auto rounded-card border border-border">
         <table className="w-full min-w-[720px] text-sm">
           <caption className="sr-only">Productos del catálogo</caption>
           <thead className="bg-surface text-left text-xs text-text-muted uppercase">

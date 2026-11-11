@@ -113,7 +113,7 @@ El alias `@/` se configura en `tsconfig.json` y apunta a `src/`. Los imports rel
 
 ### D5. Filtros en la dirección
 Los filtros del catálogo viven en los parámetros de la URL (`categoria`, `marca`, `socket`, `precioMin`, `precioMax`, `q`, `orden` y `pagina`), que son la fuente de verdad. Por eso recargar o compartir el enlace conserva el estado.
-- Cambiar un filtro hace `router.replace` y vuelve a la página 1.
+- Cambiar un filtro vuelve a la página 1 y actualiza la URL con `window.history.replaceState`, que Next sincroniza con `useSearchParams`. Así el cambio se resuelve en el navegador con TanStack Query, sin otro render del servidor. Se eligió en lugar de `router.replace` durante la implementación: con `router.replace` el servidor volvía a precargar, lo que costaba una petición más al Worker de la web e impedía probar el estado de error interceptando la API.
 - Los chips muestran los filtros activos y quitan cada uno por separado.
 - El buscador de la cabecera navega a `/catalogo?q=…`.
 

@@ -1,5 +1,6 @@
 // Panel de catálogo en el navegador (specs catalogo y autorizacion-roles; tarea 5.4).
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 import { expect, type Page, test } from '@playwright/test';
 import { ADMIN, alerta, clienteConSesion, ingresar } from './datos';
 
@@ -98,4 +99,33 @@ test('un ADMIN que guarda stock con una versión obsoleta ve el conflicto y la c
   await expect(b.getByRole('status')).toContainText('Cantidad vigente: 9 (versión 1)');
   await expect(fila(b, nombre).getByRole('spinbutton')).toHaveValue('9');
   await contexto.close();
+});
+
+test('un ADMIN busca un producto por nombre en la lista', async ({ page }) => {
+  await panelComoAdmin(page);
+  const nombre = await crearFuente(page);
+  await page.getByPlaceholder('Buscar por nombre o marca').fill(nombre);
+  await expect(page.getByRole('row')).toHaveCount(2); // cabecera + el producto
+  await expect(fila(page, nombre)).toBeVisible();
+});
+
+test('un ADMIN sube una imagen y se ve en el detalle público', async ({ page }) => {
+  await panelComoAdmin(page);
+  const nombre = await crearFuente(page);
+  await fila(page, nombre)
+    .getByRole('button', { name: `Editar ${nombre}` })
+    .click();
+  const dialogo = page.getByRole('dialog');
+  await dialogo
+    .locator('input[type="file"]')
+    .setInputFiles(join(import.meta.dirname, 'archivos', 'producto.png'));
+  await expect(page.getByRole('status')).toContainText(`Imagen guardada: «${nombre}»`);
+  await expect(dialogo.getByRole('img', { name: `Imagen de ${nombre}` })).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.goto(`/catalogo?q=${encodeURIComponent(nombre)}`);
+  await page.getByRole('article').getByRole('link', { name: nombre }).click();
+  const imagen = page.getByRole('img', { name: nombre });
+  await expect(imagen).toHaveAttribute('src', /\/imagen\/[0-9a-f-]{36}\.png$/);
+  expect(await imagen.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(64);
 });

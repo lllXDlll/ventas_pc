@@ -1,5 +1,32 @@
-// Sistema de diseño y vitrina interna (specs sistema-diseno y arquitectura-frontend).
-import { expect, test } from '@playwright/test';
+// Sistema de diseño, accesibilidad y vitrina interna (specs sistema-diseno y
+// arquitectura-frontend; tareas 4.6, 6.2, 6.4, 10.1 y 10.2 del Sprint 1.5).
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import { ADMIN, ID_AGOTADO, ingresar } from './datos';
+
+/** Las 7 pantallas del sprint (el panel necesita la sesión de un ADMIN). */
+const PANTALLAS = [
+  { nombre: 'inicio', ruta: '/' },
+  { nombre: 'listado', ruta: '/catalogo' },
+  { nombre: 'detalle', ruta: `/catalogo/${ID_AGOTADO}` },
+  { nombre: 'inicio de sesión', ruta: '/ingresar' },
+  { nombre: 'registro', ruta: '/registro' },
+  { nombre: 'recuperar', ruta: '/recuperar' },
+];
+
+async function abrirPanel(page: Page) {
+  await ingresar(page, ADMIN.correo, ADMIN.contrasena);
+  await expect(page.getByRole('table')).toBeVisible();
+  await expect(page.getByRole('row').nth(1)).toContainText('S/');
+}
+
+async function sinInfracciones(page: Page) {
+  const { violations } = await new AxeBuilder({ page }).analyze();
+  const graves = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+  expect(
+    graves.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`),
+  ).toEqual([]);
+}
 
 test('@humo la vitrina /dev/ui muestra los componentes base y no se indexa', async ({ page }) => {
   await page.goto('/dev/ui');
@@ -8,4 +35,87 @@ test('@humo la vitrina /dev/ui muestra los componentes base y no se indexa', asy
     await expect(page.getByRole('button', { name: nombre })).toBeVisible();
   }
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+});
+
+test.describe('accesibilidad (axe: sin infracciones graves, contraste incluido)', () => {
+  for (const { nombre, ruta } of PANTALLAS) {
+    test(`@humo ${nombre}`, async ({ page }) => {
+      await page.goto(ruta);
+      await page.waitForLoadState('networkidle');
+      await sinInfracciones(page);
+    });
+  }
+  test('panel', async ({ page }) => {
+    await abrirPanel(page);
+    await sinInfracciones(page);
+  });
+});
+
+test.describe('360 px sin desplazamiento horizontal', () => {
+  test.use({ viewport: { width: 360, height: 780 } });
+  const anchoCorrecto = async (page: Page) =>
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+    ).toBeLessThanOrEqual(0);
+  for (const { nombre, ruta } of PANTALLAS) {
+    test(`@humo ${nombre}`, async ({ page }) => {
+      await page.goto(ruta);
+      await page.waitForLoadState('networkidle');
+      await anchoCorrecto(page);
+    });
+  }
+  test('panel', async ({ page }) => {
+    await abrirPanel(page);
+    await anchoCorrecto(page);
+  });
+});
+
+test('@humo el mega menú se usa con teclado y Esc devuelve el foco', async ({ page }) => {
+  await page.goto('/');
+  const boton = page.getByRole('button', { name: 'Todas las categorías' });
+  await boton.focus();
+  await page.keyboard.press('Enter');
+  const menu = page.getByRole('dialog', { name: 'Categorías y marcas' });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(menu.getByRole('link', { name: 'Procesador' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(menu.getByRole('link', { name: 'Placa madre' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(boton).toBeFocused();
+});
+
+test.describe('menú lateral móvil', () => {
+  test.use({ viewport: { width: 360, height: 780 } });
+  test('@humo se abre con teclado, atrapa el foco y Esc lo cierra', async ({ page }) => {
+    await page.goto('/');
+    const boton = page.getByRole('button', { name: 'Abrir menú' });
+    await boton.focus();
+    await page.keyboard.press('Enter');
+    const menu = page.getByRole('dialog', { name: 'Menú' });
+    await expect(menu).toBeVisible();
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.press('Tab');
+      expect(await menu.evaluate((m) => m.contains(document.activeElement))).toBe(true);
+    }
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(boton).toBeFocused();
+  });
+});
+
+test('@humo "Añadir al carrito" y los accesos de sprints futuros no hacen peticiones', async ({
+  page,
+}) => {
+  await page.goto(`/catalogo/${ID_AGOTADO}`);
+  await page.waitForLoadState('networkidle');
+  const peticiones: string[] = [];
+  page.on('request', (r) => peticiones.push(r.url()));
+  // aria-disabled: Playwright no hace clic en elementos deshabilitados, se despacha el evento.
+  await page.getByRole('button', { name: 'Añadir al carrito' }).dispatchEvent('click');
+  await expect(page.getByText('Disponible pronto').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Armador IA' }).dispatchEvent('click');
+  await page.waitForTimeout(300);
+  expect(peticiones).toEqual([]);
 });

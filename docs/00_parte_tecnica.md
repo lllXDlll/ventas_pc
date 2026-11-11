@@ -14,7 +14,8 @@ Fuera de alcance: pasarelas de pago reales, logística de envío, garantías y s
 
 | Pieza | Tecnología / servicio | Estado |
 |---|---|---|
-| Frontend | Next.js en Cloudflare con `@opennextjs/cloudflare` y Wrangler | **Validado en el Sprint 0** (prueba 2). Se compila y despliega desde Linux (CI): en Windows el build de OpenNext falla |
+| Frontend | Next.js en Cloudflare con `@opennextjs/cloudflare` y Wrangler; Tailwind CSS v4, componentes estilo shadcn/ui (Radix), TanStack Query, react-hook-form y zod (Sprint 1.5) | **Validado en el Sprint 0** (prueba 2). Se compila y despliega desde Linux (CI): en Windows el build de OpenNext falla |
+| Imágenes de producto | Cloudflare R2 (bucket `xdtech-imagenes`, binding `IMAGENES`), servidas por la API con caché inmutable | **Validado en el Sprint 1.5** (escritura, lectura y borrado de 2 MB desde un Worker) |
 | Backend | NestJS (TypeScript, adaptador Express) sobre Cloudflare Workers | **Validado en el Sprint 0** (prueba 1), con NestJS y Prisma inicializados en el ámbito global del Worker |
 | Base de datos | PostgreSQL en Neon + Prisma 7 con `@prisma/adapter-pg`, por Cloudflare Hyperdrive (caché de consultas desactivado) | **Fijada y validada** (prueba 3) |
 | Caché / concurrencia | Durable Object `Inventario` con SQLite en Cloudflare (opción B). Upstash queda solo como respaldo no implementado | **Decidido en el Sprint 0** (prueba 4) |
@@ -77,7 +78,12 @@ Cloudflare es la plataforma, pero **ningún supuesto de compatibilidad se da por
 ```
 repo/
   apps/
-    web/                 Next.js (frontend)
+    web/                 Next.js (frontend), por capas (Sprint 1.5):
+      src/app/           rutas: solo componen páginas ((tienda), (auth), admin, dev/ui)
+      src/features/      catalogo, auth, admin: api.ts, hooks/, contenedores/ y components/
+      src/components/    ui/ (átomos y moléculas) y layout/ (shell de la tienda y del panel)
+      src/lib/           cliente HTTP, formatos, atributos, tipos
+      src/styles/        tokens.css (único archivo con colores) y globals.css
     api/                 NestJS (backend)
       wrangler.jsonc     configuración de Wrangler (sin secretos)
       src/
@@ -109,7 +115,7 @@ repo/
 | usuarios | correo, hash de contraseña, rol (CLIENTE / ADMIN), estado |
 | sesiones | hash del token de sesión, usuario, vencimiento, revocada, fecha de revocación (`revocada_en`), fecha de creación |
 | categorias | procesador, placa madre, RAM, tarjeta gráfica, fuente, gabinete, almacenamiento, equipo armado |
-| productos | nombre, tipo (COMPONENTE / EQUIPO), precio, activo, atributos técnicos en JSONB |
+| productos | nombre, marca, tipo (COMPONENTE / EQUIPO), precio, activo, atributos técnicos en JSONB, clave de la imagen en R2 (`imagen_clave`, opcional; la imagen no se guarda en Postgres) |
 | stock | producto, cantidad física, versión (bloqueo optimista) |
 | reglas_compatibilidad | código de regla (`SOCKET`, `RAM`, `POTENCIA`, `DIMENSIONES`, `FACTOR_FORMA`, `ALMACENAMIENTO`), parámetros JSONB, activa |
 | configuraciones | usuario, origen (MANUAL / IA), presupuesto, uso, estado |
@@ -196,7 +202,8 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 - Límite de peticiones: registro (por IP), inicio de sesión (por correo y por IP) y asistente de IA (por usuario). Los contadores de registro e inicio de sesión viven en el Durable Object `Limites`; el del asistente se cuenta desde `uso_asistente` en Postgres (sección 2.2).
 - Cuidar los subrequests (máximo 50 por petición) y la CPU (10 ms en el plan gratuito): una reserva debe resolverse con pocas llamadas.
 - Pruebas unitarias junto a cada módulo; pruebas de integración contra Postgres y el almacén de disponibilidad reales en local; pruebas de extremo a extremo de navegador con **Playwright** (`tests/e2e/`, `pnpm test:e2e`), que levantan la API con `wrangler dev` y el frontend con `next build` + `next start`. Corren en el job `e2e` de la CI, del que depende el despliegue. Las marcadas `@humo` son de solo lectura y también corren contra producción con `E2E_URL=https://xdtech.store`.
-- No introducir tecnologías fuera del stack (sin colas de mensajes, sin balanceador, sin otra base de datos).
+- No introducir tecnologías fuera del stack (sin colas de mensajes, sin balanceador, sin otra base de datos). Las imágenes de producto van en R2, el almacenamiento de objetos de Cloudflare (Sprint 1.5).
+- Frontend por capas: `app → features → components → lib`; los componentes de presentación reciben los datos por props y solo los contenedores leen la API. ESLint lo comprueba, y `pnpm lint` también rechaza colores fuera de `styles/tokens.css`.
 - Cada sprint termina con: código en la rama principal, CI en verde y las pruebas del sprint pasando.
 
 ## 7. Valores por defecto (configurables)
@@ -224,6 +231,7 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 |---|---|---|
 | 0 | `sprint_00_fundamentos.md` | Base técnica y validación de compatibilidad con Cloudflare |
 | 1 | `sprint_01_usuarios_catalogo.md` | Usuarios y catálogo |
+| 1.5 | `Sprint 1.5 Rediseño del frontend.md` | Sistema de diseño, frontend por capas, marca, filtros, facetas e imágenes de producto (el plan pasa de 8 a 9 semanas) |
 | 2 | `sprint_02_motor_reglas.md` | Motor de reglas y armador manual |
 | 3 | `sprint_03_concurrencia_carrito.md` | Concurrencia y carrito |
 | 4 | `sprint_04_pago_historial.md` | Pago, notificaciones e historial |
@@ -256,6 +264,10 @@ Plan de recorte si el tiempo se acorta: mantener siempre concurrencia (Sprint 3)
 - **Cambia el despliegue:** el backend corre sobre Cloudflare Workers, que ya es serverless y escala sin estado, en lugar de instancias Docker detrás de NGINX. La cola BullMQ para expirar reservas se reemplaza por Cron Triggers más la expiración perezosa en cada reserva. Se usan planes gratuitos en lugar del hardware sugerido en la propuesta.
 - **Caché de concurrencia:** la propuesta plantea Redis con scripts Lua. En su lugar se usa un Durable Object de Cloudflare con SQLite: sus peticiones se procesan una por una, así que da la misma atomicidad que un script Lua, sin una pieza externa. La decisión y sus mediciones constan en `docs/compatibilidad-cloudflare.md`.
 - **Justificación:** el escalado horizontal sin estado que pedía la propuesta lo da la plataforma sin balanceador propio, y el plan se ajusta al presupuesto gratuito y a un solo desarrollador. Confirmar con el docente si la propuesta es vinculante en este punto.
+
+### Deuda técnica registrada (Sprint 1.5)
+- **`productos.marca` admite nulos** para no romper la migración sobre datos existentes. La API la exige al crear y la semilla la completa; cuando todos los productos la tengan, se puede pasar a `NOT NULL`.
+- **Las imágenes las sirve el Worker de la API** (`GET /productos/:id/imagen/:archivo`) con caché inmutable del navegador. Si el consumo de peticiones del plan gratuito aprieta, se agrega `caches.default` o un dominio público para el bucket.
 
 ### Criterio de trazabilidad
 Al cerrar el proyecto, RF-03 se reporta como "diferido con justificación", no como cumplido.
@@ -290,4 +302,6 @@ Todas validadas en el Sprint 0 (`docs/compatibilidad-cloudflare.md`).
 | Frontend | **Fijada** | Next.js en Cloudflare con OpenNext (Vercel descartado) |
 | Caché de concurrencia | **Fijada** | Durable Object `Inventario` con SQLite (opción B); Upstash solo como respaldo |
 | Hash de contraseñas | **Fijada** | PBKDF2-SHA256 con Web Crypto, 50.000 iteraciones |
+| Imágenes de producto | **Fijada** (Sprint 1.5) | Cloudflare R2, una imagen opcional por producto (JPEG, PNG o WebP, hasta 2 MB), subida por el ADMIN |
+| Nombre de la tienda | **Fijada** (Sprint 1.5) | XDTech; logo de texto con el degradado de marca |
 | Sesión e IP | **Fijada** | Cookie `Domain=.xdtech.store` (Chrome, Brave y Firefox) e IP desde `CF-Connecting-IP` |

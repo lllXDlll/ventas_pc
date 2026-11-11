@@ -4,18 +4,35 @@ Nov 11, 2026 · @erick
 
 ## Objetivo y alcance
 
-En 5 días hábiles (unas 39 horas) el frontend pasa de pantallas funcionales sin estilo a una tienda con identidad propia, un sistema de diseño reutilizable y una estructura de carpetas por capas. No se agrega lógica de negocio nueva: los endpoints y contratos del Sprint 1 no cambian.
+En 5 días hábiles (unas 39 horas) el frontend pasa de pantallas funcionales sin estilo a una tienda con identidad propia, un sistema de diseño reutilizable y una estructura de carpetas por capas. Los contratos del Sprint 1 no se rompen: la API solo **agrega** campos y parámetros (ver "Cambios respecto a la versión original").
 
 **Entra en el sprint:**
 
 - Sistema de diseño: tokens de color (morado, azul, negro), tipografía, espaciado y componentes base.
 - Estructura del frontend por capas, con una regla clara de dependencias.
-- Rediseño de lo que ya existe tras el Sprint 1: shell global (cabecera, menú de categorías, pie), inicio, listado y detalle de catálogo, inicio de sesión, registro, recuperación de acceso y panel administrativo de catálogo y stock.
+- Rediseño de lo que ya existe tras el Sprint 1: shell global (cabecera, menú de categorías, pie), inicio, listado y detalle de catálogo, inicio de sesión, registro, recuperación de acceso ("Disponible pronto") y panel administrativo de catálogo y stock.
+- Ampliación de la API para marca, filtros, facetas e imágenes de producto en R2 (ver la sección de cambios).
 - Componentes que los sprints siguientes van a reutilizar (tarjeta de producto, insignia de stock, tabla de especificaciones), aunque su pantalla final llegue después.
 
 **No entra:** la interfaz del armador manual (Sprint 2), carrito y reservas (Sprint 3), pago e historial (Sprint 4), asistente de IA (Sprint 5) y modo claro.
 
 **Efecto en el cronograma:** el plan de 8 semanas pasa a 9. Si la fecha de entrega es fija, recupera esa semana en la Fase 6: como el pulido visual ya queda hecho aquí, esa fase se reduce a reportes, límites de peticiones y pruebas de carga.
+
+## Cambios respecto a la versión original (2026-11-11)
+
+Al revisar este documento contra el código del Sprint 1 aparecieron huecos que ningún sprint posterior cubre. El desarrollador decidió resolverlos en este sprint (detalle en `openspec/changes/sprint-1-5-rediseno-frontend/`):
+
+| Tema | Versión original | Decisión |
+| --- | --- | --- |
+| API | Prohibido tocar `apps/api` | Se amplía sin romper contratos: columna `marca`, filtros `marca`, `socket`, `q` y `orden` en `GET /productos`, `GET /facetas` (marcas y sockets con su cantidad y rango de precio) y búsqueda en `GET /admin/productos` |
+| Filtros por marca y socket | Filtrar en el cliente si la API no los acepta | Los filtra la API (no se trae el catálogo completo al navegador) |
+| Imágenes | Fotos de producto sin origen definido | Imagen opcional por producto en **Cloudflare R2**, subida por el ADMIN (JPEG, PNG o WebP, hasta 2 MB); sin imagen, el recuadro muestra el icono de la categoría |
+| Recuperación de acceso | Pantalla con `RecuperarForm` | `/recuperar` existe y se enlaza desde el inicio de sesión, pero solo muestra **"Disponible pronto"**, sin formulario: HU-03 sigue diferida y no hay endpoint |
+| Sesión en el cliente | `api-client.ts` con "token" | No hay token en el cliente: la sesión es la cookie `httpOnly` `xd_sesion` y el cliente usa `credentials: 'include'` |
+| Ruta del detalle | `producto/[id]` | Se conserva `/catalogo/[id]` (enlaces y pruebas @humo existentes) |
+| Contenedores | `*Contenedor` dentro de `components/` | Carpeta propia `features/<x>/contenedores/`, para que ESLint distinga presentación y datos |
+| Comprobación de colores | `grep` sobre `.tsx` | `pnpm lint` ejecuta `scripts/sin-colores-sueltos.mjs` sobre `.ts`, `.tsx` y `.css` (multiplataforma) |
+| Nombre de la tienda | Pendiente | **XDTech** |
 
 ## Qué tomar de PcComponentes
 
@@ -79,8 +96,8 @@ Si un componente de `components/ui` necesita datos de un producto, recíbelos po
 ```text
 apps/web/src/
   app/                      rutas (App Router): solo componen páginas
-    (tienda)/               inicio, catalogo, producto/[id]
-    (auth)/                 login, registro, recuperar
+    (tienda)/               inicio, catalogo, catalogo/[id]
+    (auth)/                 ingresar, registro, recuperar ("Disponible pronto")
     admin/                  productos, stock
     dev/ui/                 vitrina interna de componentes
   features/
@@ -88,13 +105,13 @@ apps/web/src/
       api.ts                llamadas al backend (fetch tipado)
       hooks/                useProductos, useProducto (TanStack Query)
       components/           ProductCard, ProductGrid, FiltrosSidebar, SpecsTable
-    auth/                   LoginForm, RegistroForm, RecuperarForm, schemas zod
+    auth/                   LoginForm, RegistroForm, AuthCard, MenuCuenta, SoloAdmin, schemas zod
     admin/                  ProductoForm, StockEditor, ProductosTable
   components/
     ui/                     átomos y moléculas: Button, Input, Badge, Card, Skeleton, Dialog
     layout/                 TopBar, Header, MegaMenu, QuickLinks, Footer, AdminShell
   lib/
-    api-client.ts           base URL, token, manejo de errores
+    api-client.ts           llamadas con la cookie de sesión y manejo de errores (sin token)
     format.ts               formatoPrecio, formatoStock
   styles/
     tokens.css              único archivo con colores hex
@@ -153,7 +170,7 @@ Los productos con stock 0 no se muestran como disponibles, igual que en el Sprin
 | T18 | 5 | ProductoForm con campos técnicos por categoría y StockEditor | 1.5 |
 | T19 | 5 | QA: Lighthouse, contraste, teclado, responsive y pruebas del Sprint 1 | 2 |
 
-**Antes de T13:** confirma si la API de catálogo acepta filtros por marca, socket y precio. Si no los acepta, filtra en el cliente durante este sprint y anota el cambio de API como deuda para el Sprint 2. No agregues endpoints aquí.
+**Antes de T13 (resuelto):** la API no aceptaba filtros por marca ni socket; se amplió en este mismo sprint (ver "Cambios respecto a la versión original").
 
 **Si te atrasas:** recorta en este orden: columna de marcas del mega menú (T07), chips de filtros activos (T13) y edición de stock en línea (T18; el stock se sigue editando desde el formulario). Lo demás lo usan los sprints siguientes.
 
@@ -161,7 +178,7 @@ Los productos con stock 0 no se muestran como disponibles, igual que en el Sprin
 
 El sprint se cierra cuando todo lo de esta lista se cumple y se puede comprobar, no cuando "se ve bien".
 
-- [ ] Ningún color hex fuera de `styles/tokens.css`. Comprobación: `grep -rnE "#[0-9a-fA-F]{3,8}\b" apps/web/src --include=*.tsx` no devuelve resultados.
+- [ ] Ningún color hex fuera de `styles/tokens.css`. Comprobación: `pnpm lint` (ejecuta `scripts/sin-colores-sueltos.mjs` sobre `.ts`, `.tsx` y `.css`).
 - [ ] Todo texto cumple contraste AA (4.5:1 normal, 3:1 en texto de 24 px o más).
 - [ ] Lighthouse móvil en `/catalogo`: accesibilidad 90 o más, rendimiento 80 o más.
 - [ ] Las 7 pantallas se ven sin cortes ni scroll horizontal en 360, 768 y 1280 px.
@@ -177,7 +194,7 @@ El sprint se cierra cuando todo lo de esta lista se cumple y se puede comprobar,
 Pégalo al empezar cada día y cambia solo la línea `DÍA`. Exige un plan antes de tocar código para que puedas frenar cambios fuera de alcance.
 
 ```text
-Contexto: monorepo con apps/web (Next.js) y apps/api (NestJS). El Sprint 1 (auth y catálogo) está terminado y funciona. Ahora hacemos el Sprint 1.5: rediseño visual del frontend. Está prohibido modificar apps/api, el esquema de Prisma o los contratos de la API.
+Contexto: monorepo con apps/web (Next.js) y apps/api (NestJS). El Sprint 1 (auth y catálogo) está terminado y funciona. Ahora hacemos el Sprint 1.5: rediseño visual del frontend y la ampliación de la API descrita en "Cambios respecto a la versión original" (marca, filtros, facetas e imágenes en R2). Los contratos existentes no se rompen: solo se agregan campos y parámetros.
 
 DÍA: 1 (tareas T01 a T05)
 
@@ -214,10 +231,10 @@ T09 MobileDrawer y revisión en 360, 768 y 1280 px
 T10 ProductCard (imagen 1:1 en recuadro claro, nombre en 2 líneas, 3 chips de atributos, precio, StockBadge), formatoPrecio
 T11 Inicio: Hero, CategoryGrid, 8 destacados, TrustBar
 T12 mover catálogo a features/catalogo con hooks
-T13 listado con filtros (categoría, precio, marca, socket), chips, orden y paginación; si la API no filtra, filtra en cliente y avísame
+T13 listado con filtros (categoría, precio, marca, socket), chips, orden y paginación, filtrados por la API
 T14 detalle de producto con SpecsTable desde el JSONB de atributos
 T15 estados de carga, vacío y error
-T16 login, registro y recuperación con AuthCard y zod
+T16 login y registro con AuthCard y zod; /recuperar solo con "Disponible pronto"
 T17 AdminShell y DataTable de productos
 T18 ProductoForm con campos técnicos por categoría y StockEditor
 T19 QA: Lighthouse, contraste, teclado, responsive y pruebas del Sprint 1
@@ -228,10 +245,10 @@ T19 QA: Lighthouse, contraste, teclado, responsive y pruebas del Sprint 1
 | Riesgo | Mitigación |
 | --- | --- |
 | El pulido visual se come la semana | Límite de 39 horas y orden de recorte definido en el backlog. Lo que no entra pasa a la Fase 6 |
-| Claude Code toca el backend o reescribe lógica que ya funciona | Regla 1 del prompt (plan antes de código) y prohibición explícita sobre `apps/api`. Revisa el diff de cada commit |
+| Claude Code reescribe lógica que ya funciona | Regla 1 del prompt (plan antes de código); los cambios de `apps/api` se limitan a la ampliación acordada, con pruebas de integración. Revisa el diff de cada commit |
 | Al mover archivos a `features/` se rompen rutas o pruebas del Sprint 1 | Hacer T12 en un commit aislado y correr las pruebas antes de seguir |
 | Choque de versiones entre shadcn/ui y la versión de Tailwind instalada | T01 revisa versiones antes de instalar nada |
-| La API no filtra por marca o socket | Filtro en cliente por ahora y cambio de API anotado para el Sprint 2 |
+| R2 no disponible en la cuenta | Se validó antes de usarlo (registro en `docs/compatibilidad-cloudflare.md`); plan B: sin imágenes, con el icono de la categoría |
 | El diseño queda demasiado parecido a PcComponentes | Logo, nombre, colores, textos e imágenes propios; solo se toma la estructura |
 
 **Nombre de la tienda (decidido el 2026-11-11):** XDTech. El logo es el texto "XDTech" con el degradado de marca.

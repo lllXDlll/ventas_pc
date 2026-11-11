@@ -1,7 +1,7 @@
 'use client';
 
 import { SlidersHorizontal } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EstadoError, EstadoVacio } from '@/components/ui/estado';
@@ -20,9 +20,17 @@ import { ProductGrid } from '../components/producto';
 import { aConsulta, type FiltrosCatalogo, leerFiltros } from '../filtros';
 import { useFacetas, useProductos } from '../hooks/use-catalogo';
 
+/**
+ * Cambia los filtros sin volver a renderizar en el servidor: Next sincroniza
+ * useSearchParams con la History API y TanStack Query trae los datos desde el navegador
+ * (design D5 del Sprint 1.5).
+ */
+function navegar(url: string) {
+  window.history.replaceState(null, '', url);
+}
+
 /** Listado del catálogo: une la URL (filtros), los datos y los componentes de presentación. */
 export function CatalogoContenedor() {
-  const router = useRouter();
   const filtros = leerFiltros(useSearchParams());
   const productos = useProductos(filtros);
   const facetas = useFacetas(filtros.categoria);
@@ -32,11 +40,9 @@ export function CatalogoContenedor() {
   const aplicar = (cambios: Partial<FiltrosCatalogo>) => {
     const base =
       'categoria' in cambios ? { ...filtros, marca: undefined, socket: undefined } : filtros;
-    router.replace(`/catalogo${aConsulta(base, { ...cambios, pagina: undefined })}`, {
-      scroll: false,
-    });
+    navegar(`/catalogo${aConsulta(base, { ...cambios, pagina: undefined })}`);
   };
-  const limpiar = () => router.replace('/catalogo', { scroll: false });
+  const limpiar = () => navegar('/catalogo');
 
   const titulo = filtros.categoria ? NOMBRES_CATEGORIA[filtros.categoria] : 'Catálogo';
   const datos = productos.data;
@@ -75,7 +81,7 @@ export function CatalogoContenedor() {
       </div>
       <FilterChips filtros={filtros} onQuitar={aplicar} onLimpiar={limpiar} />
 
-      <div className="grid gap-6 lg:grid-cols-[256px_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[256px_minmax(0,1fr)]">
         <aside aria-label="Filtros" className="hidden lg:block">
           {sidebar}
         </aside>

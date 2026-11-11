@@ -89,10 +89,10 @@ export function BotonCarrito() {
       tamano="icono"
       className="relative"
       aria-disabled="true"
-      aria-label="Carrito (disponible pronto)"
       title="Carrito: disponible pronto"
     >
-      <ShoppingCart strokeWidth={1.5} />
+      <ShoppingCart strokeWidth={1.5} aria-hidden="true" />
+      <span className="sr-only">Carrito (disponible pronto)</span>
       <span
         aria-hidden="true"
         className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-on-color"

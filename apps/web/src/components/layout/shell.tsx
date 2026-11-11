@@ -157,7 +157,7 @@ export function Footer() {
 /** Marco del panel administrativo: barra lateral y contenido. */
 export function AdminShell({ children }: { children: ReactNode }) {
   return (
-    <div className="contenedor grid flex-1 gap-6 py-6 lg:grid-cols-[220px_1fr]">
+    <div className="contenedor grid flex-1 grid-cols-[minmax(0,1fr)] gap-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)]">
       <aside aria-label="Administración" className="lg:border-r lg:border-border lg:pr-4">
         <p className="mb-3 text-xs font-medium tracking-wide text-text-muted uppercase">
           Administración

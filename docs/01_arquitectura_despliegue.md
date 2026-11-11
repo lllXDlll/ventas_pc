@@ -14,6 +14,7 @@ flowchart LR
     WEB -->|fetch con cookie| API
     API -->|SQL por Hyperdrive, adapter-pg| PG[(Neon Postgres<br/>fuente de verdad)]
     API -->|disponibilidad| AV{{Almacén de disponibilidad<br/>Durable Object Inventario}}
+    API -->|imágenes de producto| R2[(Cloudflare R2<br/>xdtech-imagenes)]
     API -->|HTTPS| LLM[API del LLM]
     CRON[Cron Triggers] -->|scheduled| API
     GH[GitHub Actions] -->|wrangler deploy + migraciones| CF
@@ -29,6 +30,7 @@ flowchart LR
 | API | NestJS (adaptador Express) como Worker | Cloudflare Workers | Validado (Sprint 0) |
 | Base de datos | Postgres, fuente de verdad de stock, órdenes, sesiones y uso del asistente | Neon, por Cloudflare Hyperdrive (Prisma con `@prisma/adapter-pg`, caché desactivado) | Fijo y validado |
 | Almacén de disponibilidad | Disponible = físico − reservas activas, con reservas atómicas y TTL | Durable Object `Inventario` con SQLite (opción B) | Decidido en el Sprint 0 |
+| Imágenes de producto | Imagen opcional por producto, subida por el ADMIN | Cloudflare R2 (binding `IMAGENES`), servida por la API | Validado (Sprint 1.5) |
 | Tareas programadas | Expiración, reconciliación, limpieza de sesiones | Cron Triggers de Cloudflare | Fijo |
 | Proveedor de IA | Recomendaciones, detrás de la interfaz `ProveedorIA` | API externa del LLM | Fijo (proveedor intercambiable) |
 | CI/CD | Pruebas, migraciones y despliegue | GitHub Actions + Wrangler | Fijo |
@@ -139,6 +141,8 @@ La elección se tomó con la regla de la sección 5.3 de `00_parte_tecnica.md` y
 
 - Next.js desplegado en Cloudflare con OpenNext y Wrangler (validado en el Sprint 0). El build se hace en Linux (CI): en Windows falla por los enlaces simbólicos de pnpm.
 - Llama a la API con `credentials: 'include'` hacia `api.xdtech.store`; no guarda tokens en el navegador.
+- Por capas (Sprint 1.5): `app/` compone, `features/` lee datos con TanStack Query (con precarga en el servidor e hidratación), `components/` presenta y `lib/` ayuda. El catálogo, el inicio y el detalle llegan con datos en el HTML; los cambios de filtro se resuelven en el navegador sin volver a renderizar en el servidor.
+- Las imágenes de producto se piden a `api.xdtech.store/productos/:id/imagen/:archivo` (`<img>` sin optimizador: OpenNext está sin optimizador de imágenes). Cada imagen nueva tiene otra URL, así que la caché del navegador es inmutable.
 - Variable pública con la URL de la API definida en tiempo de compilación.
 
 ### 2.7 CI/CD

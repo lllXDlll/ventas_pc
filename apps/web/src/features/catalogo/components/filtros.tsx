@@ -72,7 +72,16 @@ export function FiltrosSidebar({
         {filtros.q && <input type="hidden" name="q" value={filtros.q} />}
         {filtros.orden && <input type="hidden" name="orden" value={filtros.orden} />}
         <FormField etiqueta="Categoría">
-          <Select name="categoria" defaultValue={filtros.categoria ?? ''} key={filtros.categoria}>
+          <Select
+            name="categoria"
+            defaultValue={filtros.categoria ?? ''}
+            key={filtros.categoria}
+            onChange={(e) =>
+              onCambiar({
+                categoria: (e.target.value || undefined) as FiltrosCatalogo['categoria'],
+              })
+            }
+          >
             <option value="">Todas</option>
             {CATEGORIAS.map((c) => (
               <option key={c} value={c}>

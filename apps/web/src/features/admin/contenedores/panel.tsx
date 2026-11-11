@@ -184,6 +184,11 @@ export function PanelContenedor() {
         <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
           <DialogTitle>Editar producto</DialogTitle>
           <DialogDescription className="mb-4">{editando?.nombre}</DialogDescription>
+          {/* Con el diálogo abierto, el resto de la página queda oculto para los lectores de
+              pantalla: el aviso se repite aquí para que se anuncie. */}
+          <p role="status" className="mb-2 text-sm text-success empty:hidden">
+            {aviso?.tipo === 'exito' && aviso.texto.startsWith('Imagen') ? aviso.texto : ''}
+          </p>
           {editando && (
             <div className="flex flex-col gap-4">
               <ProductoForm

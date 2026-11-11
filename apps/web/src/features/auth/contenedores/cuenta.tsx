@@ -34,12 +34,12 @@ export function IngresarContenedor() {
       descripcion="Accede para guardar tus armados y comprar."
       pie={
         <div className="flex flex-col gap-2">
-          <Link href="/recuperar" className="text-primary-soft hover:underline">
+          <Link href="/recuperar" className="text-primary-soft underline underline-offset-2">
             ¿Olvidaste tu contraseña?
           </Link>
           <p>
             ¿No tienes cuenta?{' '}
-            <Link href="/registro" className="text-primary-soft hover:underline">
+            <Link href="/registro" className="text-primary-soft underline underline-offset-2">
               Créala aquí
             </Link>
           </p>
@@ -85,7 +85,7 @@ export function RegistroContenedor() {
       pie={
         <p>
           ¿Ya tienes cuenta?{' '}
-          <Link href="/ingresar" className="text-primary-soft hover:underline">
+          <Link href="/ingresar" className="text-primary-soft underline underline-offset-2">
             Inicia sesión
           </Link>
         </p>
