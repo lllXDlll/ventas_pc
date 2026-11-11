@@ -47,6 +47,16 @@ export default defineConfig({
         },
         test: { name: 'workers', include: ['test/**/*.e2e.test.ts'] },
       },
+      {
+        // Integración contra Postgres real (Docker en local, servicio en CI).
+        plugins: [decoradores()],
+        test: {
+          name: 'integracion',
+          include: ['test/**/*.int.test.ts'],
+          environment: 'node',
+          fileParallelism: false,
+        },
+      },
     ],
   },
 });

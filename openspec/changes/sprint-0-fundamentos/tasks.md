@@ -9,7 +9,7 @@
 
 ## 1. Repositorio y monorepo
 
-- [ ] 1.1 Inicializar Git con rama `main`, `.gitignore` (node_modules, `.dev.vars`, `.env`, `.wrangler`, `.open-next`, builds) y remoto **público** en GitHub; antes del primer push, revisar con `git ls-files` que no se incluya ningún secreto; se verifica con `git status` limpio y el primer push visible en GitHub
+- [x] 1.1 Inicializar Git con rama `main`, `.gitignore` (node_modules, `.dev.vars`, `.env`, `.wrangler`, `.open-next`, builds) y remoto **público** en GitHub; antes del primer push, revisar con `git ls-files` que no se incluya ningún secreto; se verifica con `git status` limpio y el primer push visible en GitHub
 - [x] 1.2 Crear `package.json` raíz y `pnpm-workspace.yaml` con `apps/*`, fijar Node 24 (`.nvmrc`, `engines` y `setup-node` en la CI) y configurar TypeScript estricto compartido (`tsconfig.base.json`); se verifica con `pnpm install` sin errores
 - [x] 1.3 Configurar ESLint y Prettier compartidos con scripts `lint` y `format` en la raíz; se verifica con `pnpm lint` en verde sobre el repo vacío
 - [x] 1.4 Crear la estructura de carpetas de la sección 3 de la parte técnica (`apps/api/src/{auth,catalogo,...,health}`, `apps/api/prisma`, `tests/k6`, `docs/`); se verifica comparando el árbol con esa sección

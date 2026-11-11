@@ -1,0 +1,73 @@
+# Integración continua (spec entrega-continua, design.md D10).
+# Job "verificar": en cada push y pull request.
+# Job "desplegar" (tarea 6.3): solo en main, después de "verificar".
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: xdtech
+          POSTGRES_PASSWORD: xdtech
+          POSTGRES_DB: xdtech
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U xdtech"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Credenciales del Postgres efímero de la CI (no son secretos).
+      DIRECT_URL: postgresql://xdtech:xdtech@localhost:5432/xdtech
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # usa la versión de "packageManager"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Formato
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Tipos de la API
+        run: pnpm --filter api typecheck
+
+      - name: Tipos del frontend
+        run: pnpm --filter web typecheck
+
+      - name: Pruebas unitarias y e2e en workerd
+        run: pnpm --filter api test
+
+      - name: Pruebas de integración (Postgres)
+        run: pnpm --filter api test:int --passWithNoTests
+
+      - name: Build de la API (bundle de Wrangler)
+        run: pnpm --filter api build
+
+      - name: Build del frontend (OpenNext)
+        run: pnpm --filter web build:cf
