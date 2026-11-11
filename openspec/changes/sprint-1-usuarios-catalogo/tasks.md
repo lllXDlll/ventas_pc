@@ -8,7 +8,7 @@
 
 ## 1. Esquema y semillas
 
-- [ ] 1.1 Migración nueva que agrega `sesiones.revocada_en timestamptz NULL` (design D4) y su campo en `schema.prisma`; se verifica con `prisma migrate dev` en local y con una prueba de integración que lee la columna
+- [x] 1.1 Migración nueva que agrega `sesiones.revocada_en timestamptz NULL` (design D4) y su campo en `schema.prisma`; se verifica con `prisma migrate dev` en local y con una prueba de integración que lee la columna
 - [ ] 1.2 Script `scripts/semillas.mjs` con las partes `categorias`, `catalogo` y `admin` (design D11), idempotentes y con `pg` sobre `DIRECT_URL`; agregar los scripts `semilla:*` a `package.json`; se verifica con una prueba de integración que ejecuta cada parte dos veces y compara los conteos
 - [ ] 1.3 Catálogo de ejemplo con al menos dos sockets, dos tipos de RAM, fuentes de distinta potencia, gabinetes de distinto factor de forma y un equipo armado, con atributos válidos según la tabla D8; se verifica con la prueba de integración de 1.2 y con el validador de atributos de 4.1 aplicado a cada producto de la semilla
 - [ ] 1.4 Ejecutar la semilla `categorias` en el job `desplegar`, después de las migraciones, y documentar en `apps/api/README.md` cómo ejecutar `admin` y `catalogo` contra Neon; se verifica con la CI en verde y con `GET /categorias` en producción devolviendo las ocho categorías

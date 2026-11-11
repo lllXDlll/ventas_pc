@@ -73,14 +73,14 @@ enum EstadoReserva {
 // ───────────── Usuarios y sesiones ─────────────
 
 model Usuario {
-  id              String        @id @default(uuid(7)) @db.Uuid
+  id             String        @id @default(uuid(7)) @db.Uuid
   /// Único sin distinguir mayúsculas (tipo citext).
-  correo          String        @unique @db.Citext
-  hashContrasena  String        @map("hash_contrasena")
-  rol             Rol           @default(CLIENTE)
-  estado          EstadoUsuario @default(ACTIVO)
-  creadoEn        DateTime      @default(now()) @map("creado_en") @db.Timestamptz(3)
-  actualizadoEn   DateTime      @updatedAt @map("actualizado_en") @db.Timestamptz(3)
+  correo         String        @unique @db.Citext
+  hashContrasena String        @map("hash_contrasena")
+  rol            Rol           @default(CLIENTE)
+  estado         EstadoUsuario @default(ACTIVO)
+  creadoEn       DateTime      @default(now()) @map("creado_en") @db.Timestamptz(3)
+  actualizadoEn  DateTime      @updatedAt @map("actualizado_en") @db.Timestamptz(3)
 
   sesiones        Sesion[]
   configuraciones Configuracion[]
@@ -94,13 +94,16 @@ model Usuario {
 }
 
 model Sesion {
-  id        String   @id @default(uuid(7)) @db.Uuid
+  id         String    @id @default(uuid(7)) @db.Uuid
   /// Hash del token; el token en claro solo vive en la cookie.
-  tokenHash String   @unique @map("token_hash")
-  usuarioId String   @map("usuario_id") @db.Uuid
-  venceEn   DateTime @map("vence_en") @db.Timestamptz(3)
-  revocada  Boolean  @default(false)
-  creadaEn  DateTime @default(now()) @map("creada_en") @db.Timestamptz(3)
+  tokenHash  String    @unique @map("token_hash")
+  usuarioId  String    @map("usuario_id") @db.Uuid
+  venceEn    DateTime  @map("vence_en") @db.Timestamptz(3)
+  revocada   Boolean   @default(false)
+  /// Momento de la revocación; nulo mientras la sesión no esté revocada. La limpieza
+  /// diaria borra las revocadas hace más de un día (Sprint 1, design D4).
+  revocadaEn DateTime? @map("revocada_en") @db.Timestamptz(3)
+  creadaEn   DateTime  @default(now()) @map("creada_en") @db.Timestamptz(3)
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 

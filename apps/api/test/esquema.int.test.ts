@@ -121,6 +121,23 @@ describe('sesiones', () => {
     expect(await codigoError(insertar, [randomUUID(), usuario])).toBeNull();
     expect(await codigoError(insertar, [randomUUID(), usuario])).toBe(VIOLA_UNICIDAD);
   });
+
+  it('guarda la fecha de revocación, vacía mientras la sesión no esté revocada', async () => {
+    const { rows } = await cliente.query<{ data_type: string; is_nullable: string }>(
+      `SELECT data_type, is_nullable FROM information_schema.columns
+        WHERE table_name = 'sesiones' AND column_name = 'revocada_en'`,
+    );
+    expect(rows).toEqual([{ data_type: 'timestamp with time zone', is_nullable: 'YES' }]);
+
+    const usuario = await crearUsuario();
+    const id = randomUUID();
+    await cliente.query(
+      `INSERT INTO sesiones (id, token_hash, usuario_id, vence_en) VALUES ($1, 'h-revocada', $2, now())`,
+      [id, usuario],
+    );
+    const nueva = await cliente.query(`SELECT revocada_en FROM sesiones WHERE id = $1`, [id]);
+    expect(nueva.rows[0].revocada_en).toBeNull();
+  });
 });
 
 describe('stock', () => {
