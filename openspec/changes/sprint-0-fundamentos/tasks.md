@@ -3,7 +3,7 @@
 ## 0. Prerrequisitos externos (los hace el desarrollador, fuera del código)
 
 - [x] 0.1 Confirmar que `xdtech.store` está comprado y su DNS administrado en Cloudflare; se verifica con `dig NS xdtech.store`, que debe devolver servidores de Cloudflare
-- [ ] 0.2 Crear las cuentas de Neon y GitHub y el proyecto de Neon; se verifica con la cadena de conexión **directa** de Neon disponible (la usan Hyperdrive y las migraciones)
+- [x] 0.2 Crear las cuentas de Neon y GitHub y el proyecto de Neon; se verifica con la cadena de conexión **directa** de Neon disponible (la usan Hyperdrive y las migraciones)
 - [x] 0.3 Ejecutar `wrangler login`; se verifica con `wrangler whoami`, que debe mostrar la cuenta
 - [x] 0.4 Responder las decisiones pendientes P1–P3 y P6–P8 de design.md (o aceptar las recomendadas); se verifica con la tabla de design.md actualizada
 
@@ -42,7 +42,7 @@
 
 ## 6. Entrega continua y dominios
 
-- [ ] 6.1 Crear `.env.example` y `apps/api/.dev.vars.example` con todas las variables (incluidas `COOKIE_DOMAIN`, `FRONTEND_ORIGIN`, `SESSION_TTL_DAYS`, `HEALTH_TIMEOUT_MS`, `DIRECT_URL` y la cadena local de Hyperdrive); se verifica clonando en limpio, copiando los ejemplos y levantando `wrangler dev` sin variables faltantes
+- [x] 6.1 Crear `.env.example` y `apps/api/.dev.vars.example` con todas las variables (incluidas `COOKIE_DOMAIN`, `FRONTEND_ORIGIN`, `SESSION_TTL_DAYS`, `HEALTH_TIMEOUT_MS`, `DIRECT_URL` y la cadena local de Hyperdrive); se verifica clonando en limpio, copiando los ejemplos y levantando `wrangler dev` sin variables faltantes
 - [x] 6.2 Crear `.github/workflows/ci.yml` con el job `verificar` (install, lint, unit, integración con el servicio Postgres, build) en cada push y PR; se verifica con un push que deja la ejecución en verde y otro con una prueba rota que la deja en rojo
 - [ ] 6.3 Crear un API token de Cloudflare para la CI y agregar el job `desplegar` solo en `main`: migraciones con `NEON_DIRECT_URL` y después `wrangler deploy` de la API y del frontend, con los secretos `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` y `NEON_DIRECT_URL` en GitHub; se verifica con una fusión en `main` que despliega, y con un push a otra rama que no despliega
 - [ ] 6.4 Confirmar que el Worker no necesita secretos de base de datos (la cadena vive en la configuración de Hyperdrive) y cargar con `wrangler secret put` solo los que sí hagan falta; se verifica con `wrangler secret list` y con una búsqueda en el repositorio que no encuentra ninguna cadena de conexión
