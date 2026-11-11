@@ -116,8 +116,12 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      # Si falla, las últimas líneas se publican como anotación (visibles sin iniciar sesión).
       - name: Instalar Chromium para Playwright
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          set -o pipefail
+          pnpm exec playwright install-deps chromium 2>&1 | tee deps.log || { node .github/scripts/anotar-error.mjs deps.log "playwright install-deps"; exit 1; }
+          pnpm exec playwright install chromium 2>&1 | tee navegador.log || { node .github/scripts/anotar-error.mjs navegador.log "playwright install"; exit 1; }
 
       - name: Migraciones en el Postgres de la CI
         run: pnpm --filter api migrate:deploy
