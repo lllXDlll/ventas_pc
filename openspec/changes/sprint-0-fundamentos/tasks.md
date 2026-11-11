@@ -38,15 +38,15 @@
 ## 5. Frontend
 
 - [x] 5.1 Crear `apps/web` con Next.js y `@opennextjs/cloudflare`, una página con SSR y la URL pública de la API en una variable de compilación; se verifica con `pnpm --filter web preview`, que la sirve en local
-- [ ] 5.2 Configurar `wrangler.jsonc` del frontend; se verifica con `wrangler deploy` que publica la página en un subdominio `*.workers.dev`
+- [x] 5.2 Configurar `wrangler.jsonc` del frontend; se verifica con `wrangler deploy` que publica la página en un subdominio `*.workers.dev`
 
 ## 6. Entrega continua y dominios
 
 - [x] 6.1 Crear `.env.example` y `apps/api/.dev.vars.example` con todas las variables (incluidas `COOKIE_DOMAIN`, `FRONTEND_ORIGIN`, `SESSION_TTL_DAYS`, `HEALTH_TIMEOUT_MS`, `DIRECT_URL` y la cadena local de Hyperdrive); se verifica clonando en limpio, copiando los ejemplos y levantando `wrangler dev` sin variables faltantes
 - [x] 6.2 Crear `.github/workflows/ci.yml` con el job `verificar` (install, lint, unit, integración con el servicio Postgres, build) en cada push y PR; se verifica con un push que deja la ejecución en verde y otro con una prueba rota que la deja en rojo
-- [ ] 6.3 Crear un API token de Cloudflare para la CI y agregar el job `desplegar` solo en `main`: migraciones con `NEON_DIRECT_URL` y después `wrangler deploy` de la API y del frontend, con los secretos `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` y `NEON_DIRECT_URL` en GitHub; se verifica con una fusión en `main` que despliega, y con un push a otra rama que no despliega
-- [ ] 6.4 Confirmar que el Worker no necesita secretos de base de datos (la cadena vive en la configuración de Hyperdrive) y cargar con `wrangler secret put` solo los que sí hagan falta; se verifica con `wrangler secret list` y con una búsqueda en el repositorio que no encuentra ninguna cadena de conexión
-- [ ] 6.5 Configurar los Custom Domains `api.xdtech.store` y el del frontend (P3); se verifica con `curl -I https://api.xdtech.store/health/live` devolviendo 200 con un certificado válido y el frontend cargando por HTTPS
+- [x] 6.3 Crear un API token de Cloudflare para la CI y agregar el job `desplegar` solo en `main`: migraciones con `NEON_DIRECT_URL` y después `wrangler deploy` de la API y del frontend, con los secretos `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` y `NEON_DIRECT_URL` en GitHub; se verifica con una fusión en `main` que despliega, y con un push a otra rama que no despliega
+- [x] 6.4 Confirmar que el Worker no necesita secretos de base de datos (la cadena vive en la configuración de Hyperdrive) y cargar con `wrangler secret put` solo los que sí hagan falta; se verifica con `wrangler secret list` y con una búsqueda en el repositorio que no encuentra ninguna cadena de conexión
+- [x] 6.5 Configurar los Custom Domains `api.xdtech.store` y el del frontend (P3); se verifica con `curl -I https://api.xdtech.store/health/live` devolviendo 200 con un certificado válido y el frontend cargando por HTTPS
 
 ## 7. Pruebas de compatibilidad (HU-36b)
 
@@ -60,7 +60,7 @@
 - [ ] 7.8 Prueba 5: medir la CPU de PBKDF2-SHA256 con varias cantidades de iteraciones en el Worker desplegado y elegir los parámetros (D7, P7); se verifica con la tabla iteraciones → ms registrada y el valor elegido por debajo de 10 ms
 - [ ] 7.9 Prueba 6: endpoint temporal que emite la cookie `Domain=.xdtech.store` y página del frontend que la devuelve con credenciales; probar en Chrome y en Safari o Firefox (manual); se verifica con el resultado por navegador registrado
 - [ ] 7.10 Prueba 7: endpoint temporal que devuelve `CF-Connecting-IP` y la IP del socket desde `api.xdtech.store`; se verifica con el registro que muestra la IP pública correcta y que la del socket no sirve
-- [ ] 7.11 Prueba 8: disparar `scheduled` en local (`wrangler dev --test-scheduled` y `/__scheduled?cron=...`) y comprobar las ejecuciones en producción con `wrangler tail`; se verifica con el registro de las tres tareas en local y de al menos la de cada minuto en producción
+- [x] 7.11 Prueba 8: disparar `scheduled` en local (`wrangler dev --test-scheduled` y `/__scheduled?cron=...`) y comprobar las ejecuciones en producción con `wrangler tail`; se verifica con el registro de las tres tareas en local y de al menos la de cada minuto en producción
 - [ ] 7.12 Prueba 9: contar los subrequests de una reserva de ejemplo (llamada al Durable Object y registro en Postgres por Hyperdrive); se verifica con un número registrado muy por debajo de 50
 
 ## 8. Cierre del sprint
