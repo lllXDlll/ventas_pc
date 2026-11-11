@@ -60,14 +60,15 @@ jobs:
       - name: Tipos del frontend
         run: pnpm --filter web typecheck
 
+      # El reporter github-actions publica cada falla como anotación del job.
       - name: Pruebas unitarias y e2e en workerd
-        run: pnpm --filter api test
+        run: pnpm --filter api test --reporter=default --reporter=github-actions
 
       - name: Migraciones en el Postgres de la CI
         run: pnpm --filter api migrate:deploy
 
       - name: Pruebas de integración (Postgres y Worker empaquetado)
-        run: pnpm --filter api test:int
+        run: pnpm --filter api test:int --reporter=default --reporter=github-actions
 
       - name: Build de la API (bundle de Wrangler)
         run: pnpm --filter api build
