@@ -2,7 +2,7 @@
 
 ## 0. Correcciones y mantenimiento heredados del Sprint 0
 
-- [ ] 0.1 Retirar el secreto temporal con `npx wrangler secret delete PROTOTIPO_TOKEN` (lo hace el desarrollador) y quitar la línea de su `.dev.vars`; se verifica con `wrangler secret list`, que devuelve `[]`
+- [x] 0.1 Retirar el secreto temporal con `npx wrangler secret delete PROTOTIPO_TOKEN` (lo hace el desarrollador) y quitar la línea de su `.dev.vars`; se verifica con `wrangler secret list`, que devuelve `[]`
 - [x] 0.2 Subir `wrangler` y `@cloudflare/vitest-plugin` a su última versión estable sin excepciones de `minimumReleaseAge` en `pnpm-workspace.yaml`; se verifica con `pnpm outdated -r`, que no los lista, y con la CI en verde
 - [x] 0.3 Una conexión a Postgres por petición HTTP (design D1): un contexto por petición en el servidor de `worker.ts`, reutilizado por `conPrisma()` y cerrado en el `close` de la respuesta; ampliar la prueba de integración de 60 peticiones concurrentes para comprobar que no quedan conexiones abiertas (`pg_stat_activity`) y agregar una prueba de que dos `conPrisma()` dentro de una petición comparten la conexión (mismo `pg_backend_pid()`); se verifica con `pnpm --filter api test:int` en verde
 
@@ -46,8 +46,8 @@
 
 ## 6. Despliegue y verificación en producción
 
-- [ ] 6.1 Desplegar en `main` (CI en verde con la migración y la semilla de categorías), ejecutar las semillas `admin` y `catalogo` contra Neon y correr las pruebas e2e de solo lectura (`@humo`: catálogo, filtros, detalle de un agotado y páginas de cuenta) contra `https://xdtech.store`; se verifica con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo` en verde
-- [ ] 6.2 Medir con `wrangler tail` la CPU de `POST /auth/login` (acierto y fallo), `POST /auth/registro`, `GET /auth/me` y `GET /productos` en producción, y registrar los números y las conexiones por petición en `docs/compatibilidad-cloudflare.md`; se verifica con la sección de mediciones del Sprint 1 escrita y con la decisión sobre las iteraciones de PBKDF2 tomada por el desarrollador
+- [x] 6.1 Desplegar en `main` (CI en verde con la migración y la semilla de categorías), ejecutar las semillas `admin` y `catalogo` contra Neon y correr las pruebas e2e de solo lectura (`@humo`: catálogo, filtros, detalle de un agotado y páginas de cuenta) contra `https://xdtech.store`; se verifica con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo` en verde
+- [x] 6.2 Medir con `wrangler tail` la CPU de `POST /auth/login` (acierto y fallo), `POST /auth/registro`, `GET /auth/me` y `GET /productos` en producción, y registrar los números y las conexiones por petición en `docs/compatibilidad-cloudflare.md`; se verifica con la sección de mediciones del Sprint 1 escrita y con la decisión sobre las iteraciones de PBKDF2 tomada por el desarrollador
 - [x] 6.3 Actualizar `docs/00_parte_tecnica.md` y `docs/01_arquitectura_despliegue.md` con la conexión por petición, `revocada_en`, el nombre de la cookie, los atributos por categoría (tabla D8) y las variables `LIMITE_*`; se verifica con una búsqueda de cada concepto en `docs/`
 
 ## Workflow follow-up

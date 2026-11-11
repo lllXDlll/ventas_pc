@@ -70,3 +70,24 @@ Regla de la sección 5.3 de la parte técnica, aplicada a la opción B (la A, Up
 | Latencia | Producción, con 300 reservas simultáneas: espera en el objeto p50 132 ms y p95 383 ms; latencia del cliente desde Perú p50 0,93 s y p95 1,08 s. Una reserva aislada tarda lo que una llamada al objeto (~115 ms de pared en `/health/ready`) | Sí: aceptable para un flujo de compra |
 
 **Decisión: se confirma la opción B.** No se prototipa Upstash. Motivo: pasa los cuatro criterios con margen, no suma una pieza externa ni otra cuenta, y el desarrollador ya la había elegido. Las referencias a Upstash de la parte técnica, la arquitectura y los Sprints 0, 1, 3, 6 y 7 se actualizaron en la tarea 8.2.
+
+## Mediciones del Sprint 1 (tarea 6.2, 2026-11-11)
+
+CPU por petición en producción (`wrangler tail`), medida con tres cuentas de prueba (`medicion-cpu-…@xdtech.test`). Hubo dos pasadas: la primera justo después de un despliegue, con instancias frías, y la segunda en caliente.
+
+| Ruta | En caliente: mediana (rango) | Con instancias frías | Trabajo por petición |
+|---|---|---|---|
+| `GET /health/live` | 2 ms (1–3) | 11–18 ms | ninguno (referencia) |
+| `GET /auth/me` | 7 ms (5–14) | hasta 67 ms | 1 consulta (sesión + usuario) |
+| `GET /productos` | 15 ms (8–35) | hasta 155 ms | 2 consultas (listado + total) |
+| `POST /auth/login` fallido | 25 ms (16–32) | hasta 169 ms | PBKDF2 (hash ficticio si no hay cuenta) + 2 llamadas a `Limites` + 1 consulta |
+| `POST /auth/login` correcto | 32 ms (19–83) | hasta 111 ms | PBKDF2 + 3 llamadas a `Limites` + 3 consultas |
+| `POST /auth/registro` | — | 29–136 ms | PBKDF2 + 1 llamada a `Limites` + 1 escritura |
+| `POST /auth/logout` | — | 26 ms | 2 consultas |
+
+- **Conexiones:** cada petición abre como mucho una conexión a Postgres (verificado con `pg_stat_database` en las pruebas de integración). Las 3 consultas de un inicio de sesión comparten la misma.
+- **PBKDF2 pesa poco en el total:** con 50.000 iteraciones son ~6,5 ms (prueba 5) de los ~32 ms de un inicio de sesión. El resto es la conexión con su autenticación SCRAM (~4 ms), las consultas de Prisma y las llamadas a `Limites`. Bajar las iteraciones no deja el inicio de sesión por debajo de 10 ms; subirlas a 100.000 sumaría ~6,5 ms.
+- **Decisión del desarrollador (2026-11-11): se mantienen 50.000 iteraciones.** Cambiarlas no resuelve el costo del inicio de sesión, que está en otras partes. Se revisa con la carga del Sprint 3.
+- **Las rutas con consultas superan los 10 ms de CPU del plan gratuito.** En el Sprint 0 y en estas mediciones, ninguna petición fue cortada por CPU: el plan gratuito no corta al primer exceso. Si en la carga del Sprint 3 aparecen errores `Exceeded CPU`, las opciones son el plan de pago de Workers ($5 al mes, 30 s de CPU por petición) o reducir el trabajo por petición.
+- **Limpieza:** las cuentas de prueba se borran con `DELETE FROM usuarios WHERE correo LIKE 'medicion-cpu-%@xdtech.test';`. Sus sesiones se borran en cascada.
+- **Regla de límite de la zona:** la regla de rate limiting de `xdtech.store` bloqueaba la navegación normal con el error 1015: las pruebas `@humo` de Playwright la activaron en segundos. El desarrollador la eliminó el 2026-11-11. Los límites de registro e inicio de sesión los aplica la API con el Durable Object `Limites`.
