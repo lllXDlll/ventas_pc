@@ -26,7 +26,7 @@
 - [x] 3.3 Sesiones (design D3): `POST /auth/login` con cookie y atributos según `COOKIE_DOMAIN`, error genérico 401 (correo inexistente, contraseña incorrecta y cuenta bloqueada), límites por correo y por IP, y limpieza de las sesiones vencidas o revocadas del usuario al iniciar sesión; se verifica con pruebas e2e de cada escenario de inicio de sesión, del límite por correo (incluido el reinicio al acertar) y del límite por IP
 - [x] 3.4 Guarda global con `@RequiereSesion()`, `@Roles()` y `@UsuarioActual()` (design D7), `GET /auth/me` y `POST /auth/logout` (revocada y `revocada_en`, cookie vencida); se verifica con pruebas e2e: sin cookie 401, token desconocido 401, sesión vencida 401, sesión revocada 401, cuenta bloqueada 401 y `me` correcto
 - [ ] 3.5 Prueba e2e que recorre todas las rutas `/admin` registradas y comprueba 401 sin sesión y 403 con rol CLIENTE (design D7); se verifica haciéndola fallar con una ruta `/admin` temporal sin `@Roles` y viéndola pasar al quitarla
-- [ ] 3.6 Implementar `limpiarSesiones` en el despacho del cron (spec `tareas-programadas`), con el registro del número de sesiones borradas y la captura de errores de la base; se verifica con una prueba de integración de los cuatro tipos de sesión del escenario y con otra de fallo de Postgres
+- [x] 3.6 Implementar `limpiarSesiones` en el despacho del cron (spec `tareas-programadas`), con el registro del número de sesiones borradas y la captura de errores de la base; se verifica con una prueba de integración de los cuatro tipos de sesión del escenario y con otra de fallo de Postgres
 
 ## 4. Catálogo
 

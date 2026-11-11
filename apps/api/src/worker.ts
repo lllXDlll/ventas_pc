@@ -8,7 +8,9 @@ import { env } from 'cloudflare:workers';
 import express from 'express';
 import { crearApp } from './app';
 import { enPeticion, precalentarPrisma } from './datos/prisma';
-import { despachar } from './programadas/despacho';
+import { despachar, tareasPorDefecto } from './programadas/despacho';
+import { limpiarSesiones } from './programadas/limpieza-sesiones';
+import { borrarSesionesCaducadas } from './programadas/limpieza-sesiones.bd';
 
 export { Inventario } from './reservas/inventario';
 export { Limites } from './auth/limites';
@@ -68,6 +70,11 @@ try {
   );
 }
 
+const tareasProduccion = {
+  ...tareasPorDefecto,
+  limpiarSesiones: async () => void (await limpiarSesiones(borrarSesionesCaducadas)),
+};
+
 export default {
   // Una conexión a Postgres por petición HTTP; se cierra con waitUntil tras responder.
   fetch: (request, env, ctx) =>
@@ -76,6 +83,6 @@ export default {
       (cierre) => ctx.waitUntil(cierre),
     ),
   async scheduled(controller, _env, ctx) {
-    ctx.waitUntil(despachar(controller.cron).then(() => undefined));
+    ctx.waitUntil(despachar(controller.cron, tareasProduccion).then(() => undefined));
   },
 } satisfies ExportedHandler<Env>;

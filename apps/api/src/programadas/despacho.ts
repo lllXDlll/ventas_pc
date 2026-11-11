@@ -23,7 +23,8 @@ export const registroConsola: Registro = {
     console.warn(JSON.stringify({ nivel: 'advertencia', mensaje, ...datos })),
 };
 
-// Sprint 0: las tareas aún no tienen lógica de negocio (Sprint 1 y Sprint 3).
+// Tareas sin lógica (expirar y reconciliar llegan en el Sprint 3). Las de producción, con
+// limpiarSesiones real, se arman en worker.ts (aquí no se importa nada del runtime).
 export const tareasPorDefecto: Tareas = {
   expirar: async () => {},
   reconciliar: async () => {},
