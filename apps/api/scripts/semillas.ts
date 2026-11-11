@@ -283,6 +283,22 @@ export async function semillaAdmin(
   );
 }
 
+/** Todo lo que necesitan las pruebas e2e, con su propio cliente (`pg` vive en apps/api). */
+export async function prepararBaseDePruebas(
+  cadena: string,
+  admin: { correo: string; contrasena: string },
+): Promise<void> {
+  const cliente = new pg.Client({ connectionString: cadena });
+  await cliente.connect();
+  try {
+    await semillaCategorias(cliente);
+    await semillaCatalogo(cliente);
+    await semillaAdmin(cliente, admin.correo, admin.contrasena);
+  } finally {
+    await cliente.end();
+  }
+}
+
 /** Valida la cadena y devuelve el destino sin la contraseña, para los mensajes. */
 export function destinoDe(cadena: string): string {
   let url: URL;

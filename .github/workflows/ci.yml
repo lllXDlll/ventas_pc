@@ -77,9 +77,63 @@ jobs:
       - name: Build del frontend (OpenNext)
         run: pnpm --filter web build:cf
 
-  # Tarea 6.3: solo en push a main, después de "verificar". Nunca en PR ni en otras ramas.
+  # Pruebas e2e de navegador con Playwright (design D14 del Sprint 1): API con wrangler dev
+  # y frontend con next build + start, contra el Postgres efímero del job.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: xdtech
+          POSTGRES_PASSWORD: xdtech
+          POSTGRES_DB: xdtech
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U xdtech"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Base efímera de la CI y un administrador que solo existe en ella (no son secretos).
+      DIRECT_URL: postgresql://xdtech:xdtech@localhost:5432/xdtech
+      E2E_ADMIN_CORREO: admin-e2e@xdtech.test
+      E2E_ADMIN_CONTRASENA: clave-admin-e2e-ci
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Chromium para Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Migraciones en el Postgres de la CI
+        run: pnpm --filter api migrate:deploy
+
+      - name: Pruebas e2e (Playwright)
+        run: pnpm test:e2e
+
+      - name: Informe de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # Tarea 6.3: solo en push a main, después de "verificar" y "e2e". Nunca en PR ni en otras ramas.
   desplegar:
-    needs: verificar
+    needs: [verificar, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20

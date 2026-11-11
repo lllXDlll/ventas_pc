@@ -16,3 +16,6 @@ apps/api/worker-configuration.d.ts
 apps/web/.next
 apps/web/.open-next
 apps/web/next-env.d.ts
+playwright-report
+test-results
+blob-report

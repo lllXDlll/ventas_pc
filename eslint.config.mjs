@@ -13,6 +13,8 @@ export default tseslint.config(
       '**/.open-next/**',
       '**/.wrangler/**',
       '**/coverage/**',
+      'playwright-report/**',
+      'test-results/**',
       '**/next-env.d.ts',
       '**/worker-configuration.d.ts',
       'apps/api/src/generated/**',

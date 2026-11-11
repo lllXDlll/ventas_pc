@@ -195,7 +195,7 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 - Sesiones por cookie `httpOnly` guardadas en Postgres, con vencimiento (sección 2.2).
 - Límite de peticiones: registro (por IP), inicio de sesión (por correo y por IP) y asistente de IA (por usuario). Los contadores de registro e inicio de sesión viven en el Durable Object `Limites`; el del asistente se cuenta desde `uso_asistente` en Postgres (sección 2.2).
 - Cuidar los subrequests (máximo 50 por petición) y la CPU (10 ms en el plan gratuito): una reserva debe resolverse con pocas llamadas.
-- Pruebas unitarias junto a cada módulo; pruebas de integración contra Postgres y el almacén de disponibilidad reales en local; pruebas de extremo a extremo con `wrangler dev`.
+- Pruebas unitarias junto a cada módulo; pruebas de integración contra Postgres y el almacén de disponibilidad reales en local; pruebas de extremo a extremo de navegador con **Playwright** (`tests/e2e/`, `pnpm test:e2e`), que levantan la API con `wrangler dev` y el frontend con `next build` + `next start`. Corren en el job `e2e` de la CI, del que depende el despliegue. Las marcadas `@humo` son de solo lectura y también corren contra producción con `E2E_URL=https://xdtech.store`.
 - No introducir tecnologías fuera del stack (sin colas de mensajes, sin balanceador, sin otra base de datos).
 - Cada sprint termina con: código en la rama principal, CI en verde y las pruebas del sprint pasando.
 
