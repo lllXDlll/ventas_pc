@@ -9,7 +9,8 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # En main no se cancela una ejecución en curso: podría cortar un despliegue a medias.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -75,3 +76,61 @@ jobs:
 
       - name: Build del frontend (OpenNext)
         run: pnpm --filter web build:cf
+
+  # Tarea 6.3: solo en push a main, después de "verificar". Nunca en PR ni en otras ramas.
+  desplegar:
+    needs: verificar
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: desplegar-produccion
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Comprobar secretos
+        env:
+          NEON_DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+        run: |
+          faltan=0
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID NEON_DIRECT_URL; do
+            if [ -z "${!v}" ]; then echo "::error::Falta el secreto $v"; faltan=1; fi
+          done
+          exit $faltan
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Primero el esquema: el código nuevo puede depender de él.
+      - name: Migraciones en Neon
+        run: pnpm --filter api migrate:deploy
+        env:
+          DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+
+      # "run deploy": "pnpm deploy" a secas es un comando propio de pnpm.
+      - name: Desplegar la API
+        run: pnpm --filter api run deploy
+
+      - name: Desplegar el frontend
+        run: pnpm --filter web run deploy
+        env:
+          NEXT_PUBLIC_API_URL: https://api.xdtech.store
+
+      - name: Prueba de humo
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS https://api.xdtech.store/health/live; then echo; exit 0; fi
+            echo "Intento $i sin respuesta; reintento en 10 s"; sleep 10
+          done
+          echo "::warning::api.xdtech.store aún no responde (el certificado del Custom Domain puede tardar unos minutos)"

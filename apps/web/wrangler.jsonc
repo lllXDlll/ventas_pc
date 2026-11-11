@@ -9,6 +9,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS",
   },
+  // Custom Domains (tarea 6.5, P3). www redirige al apex (next.config.ts).
+  // workers.dev queda activo para diagnóstico (tarea 5.2).
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "xdtech.store", "custom_domain": true },
+    { "pattern": "www.xdtech.store", "custom_domain": true },
+  ],
   "observability": {
     "enabled": true,
   },

@@ -18,6 +18,9 @@
   },
   // >= 2026-08-04: nodejs_compat viene activado sin flag.
   "compatibility_date": "2026-11-01",
+  // Custom Domain de la API (tarea 6.5). La cookie de sesión usa Domain=.xdtech.store.
+  "workers_dev": true,
+  "routes": [{ "pattern": "api.xdtech.store", "custom_domain": true }],
   "observability": {
     "enabled": true,
   },
