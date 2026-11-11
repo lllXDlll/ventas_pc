@@ -47,7 +47,8 @@ export default defineConfig({
             '@nestjs/microservices': moduloVacio,
           },
         },
-        test: { name: 'workers', include: ['test/**/*.e2e.test.ts'] },
+        // La primera petición inicializa NestJS; en un runner de CI frío puede pasar de 5 s.
+        test: { name: 'workers', include: ['test/**/*.e2e.test.ts'], testTimeout: 20_000 },
       },
       {
         // Integración: Postgres real (Docker en local, servicio en CI) y el Worker

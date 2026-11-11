@@ -28,7 +28,7 @@
 - [x] 3.2 Crear la configuración de Hyperdrive con `wrangler hyperdrive create` (cadena directa de Neon, **caché desactivado**), agregar el binding `HYPERDRIVE` a `wrangler.jsonc` con `localConnectionString` hacia el Postgres de Docker, y configurar Prisma con `@prisma/adapter-pg` sobre `env.HYPERDRIVE.connectionString` (D4); se verifica con `wrangler hyperdrive get` mostrando el caché desactivado y un `SELECT 1` desde `wrangler dev`
 - [x] 3.3 Escribir `schema.prisma` con el modelo completo y las restricciones de D11 (spec `esquema-datos`), sin `tokens_recuperacion`, y generar la migración inicial; se verifica con `prisma migrate dev` aplicándose en local
 - [x] 3.4 Escribir pruebas de integración de las restricciones: correo único sin distinguir mayúsculas, stock no negativo, un stock por producto, clave de idempotencia única, enums inválidos rechazados y `carrito_items` con exactamente un destino; se verifica con `pnpm --filter api test:int` en verde
-- [ ] 3.5 Aplicar la migración en Neon con `prisma migrate deploy` y la cadena directa (`DIRECT_URL`); se verifica con `prisma migrate status` contra Neon sin migraciones pendientes
+- [x] 3.5 Aplicar la migración en Neon con `prisma migrate deploy` y la cadena directa (`DIRECT_URL`); se verifica con `prisma migrate status` contra Neon sin migraciones pendientes
 
 ## 4. Salud
 
@@ -54,7 +54,7 @@
 - [ ] 7.2 Prueba 1: medir el tamaño del bundle (comprimido y sin comprimir, con Prisma incluido), el arranque en frío y la CPU por petición de NestJS desplegado; se verifica con los números registrados y una decisión NestJS/Hono
 - [ ] 7.3 Prueba 2: confirmar la página SSR y el `fetch` con credenciales del frontend desplegado; se verifica con el resultado registrado y una decisión Cloudflare/Vercel
 - [ ] 7.4 Prueba 3: medir la latencia de Prisma con Neon a través de Hyperdrive desde el Worker desplegado, con la base suspendida (más de 5 min sin uso) y despierta, los subrequests por consulta y que una escritura se lee de inmediato (caché desactivado); reconfirmar los límites de Hyperdrive en el plan gratuito; se verifica con los números registrados (si falla, se prueba `@prisma/adapter-neon` y se registra)
-- [ ] 7.5 Prueba 4: prototipo del Durable Object `Inventario` con SQLite (`reservar` todo o nada, `expirar`, `consultar`, caso "no inicializado"), con pruebas en el pool de Workers; se verifica con las pruebas en verde
+- [x] 7.5 Prueba 4: prototipo del Durable Object `Inventario` con SQLite (`reservar` todo o nada, `expirar`, `consultar`, caso "no inicializado"), con pruebas en el pool de Workers; se verifica con las pruebas en verde
 - [ ] 7.6 Escribir `tests/prototipos/reservas-300.ts` y correrlo contra `wrangler dev` (repetible) y una vez contra producción (latencia real); se verifica con exactamente 5 reservas exitosas y disponible 0, y con la latencia p50/p95, las filas escritas por reserva y su proyección diaria registradas
 - [ ] 7.7 Registrar la confirmación de la opción B con la regla de la sección 5.3 (filas escritas proyectadas frente a la cuota diaria, latencia, motivo); **solo si B falla**, prototipar la opción A con Upstash, correr las mismas pruebas y registrar la decisión final; se verifica con la sección de decisiones completa
 - [ ] 7.8 Prueba 5: medir la CPU de PBKDF2-SHA256 con varias cantidades de iteraciones en el Worker desplegado y elegir los parámetros (D7, P7); se verifica con la tabla iteraciones → ms registrada y el valor elegido por debajo de 10 ms

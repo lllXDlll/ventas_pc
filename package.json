@@ -1,6 +1,7 @@
 {
   "name": "ventas-pc",
   "private": true,
+  "type": "module",
   "description": "Plataforma de venta de computadoras y componentes (xdtech.store)",
   "packageManager": "pnpm@12.18.0",
   "engines": {
