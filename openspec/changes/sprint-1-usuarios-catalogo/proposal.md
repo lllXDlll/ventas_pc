@@ -47,6 +47,7 @@ Fuera de este cambio: el disponible real del Durable Object `Inventario`, las re
 - **API (`apps/api`):** módulos nuevos `auth/` (registro, sesión, guardas, roles, `Limites`) y `catalogo/`. `datos/prisma.ts` pasa a una conexión por petición, con un middleware que abre el contexto. `reservas/disponible.service.ts` suma la consulta de disponible. `programadas/` implementa `limpiarSesiones`. Se agrega un script de semillas.
 - **Base de datos:** una migración pequeña agrega `sesiones.revocada_en` (fecha de revocación, admite nulos). Las demás tablas que se usan (`usuarios`, `categorias`, `productos` y `stock`) ya existen. Las semillas cargan datos.
 - **Frontend (`apps/web`):** páginas nuevas de cuenta, catálogo y administración, con `fetch` con credenciales a la API.
+- **Pruebas:** pruebas e2e de navegador con Playwright (`@playwright/test`, dependencia de desarrollo de la raíz) en `tests/e2e/`, y un job `e2e` en la CI del que depende el despliegue (design D14).
 - **Configuración:** variables nuevas de límites (`LIMITE_REGISTRO_*`, `LIMITE_LOGIN_*`) en `wrangler.jsonc` y `.dev.vars.example`. Credenciales del administrador inicial, solo para el script de semillas y fuera del repositorio.
 - **Cuotas:** consultas de Hyperdrive (100.000 por día) y CPU por petición (10 ms). La conexión por petición y las consultas agrupadas del catálogo apuntan a ambas.
 - **Specs:** 4 capacidades nuevas y 3 modificadas.

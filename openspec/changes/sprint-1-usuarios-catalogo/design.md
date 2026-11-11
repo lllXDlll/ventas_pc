@@ -130,6 +130,18 @@ En `wrangler.jsonc` (`vars`) y en `.dev.vars.example`:
 
 Los valores por defecto viven en código y se validan al leerlos.
 
+### D14. Pruebas e2e de navegador con Playwright (decidido por el desarrollador)
+Las pruebas de integración ya cubren el comportamiento de la API. Las de Playwright cubren lo que falta: el código del frontend (formularios, cabecera de sesión y panel) en un navegador real, contra la API real.
+- **Dónde viven:** `playwright.config.ts` en la raíz del repositorio y especificaciones en `tests/e2e/`, junto a `tests/k6/`. `@playwright/test` es una dependencia de desarrollo de la raíz, con Chromium.
+- **Cómo se levantan:** el `webServer` de Playwright arranca dos procesos y espera a que respondan:
+  - La API, con `wrangler dev` en el puerto 8787, contra el Postgres de Docker en local o el servicio de la CI. Hay que sobrescribir variables con `--var`: `FRONTEND_ORIGIN=http://localhost:3000`, `COOKIE_DOMAIN` vacío y límites altos. Sin `CF-Connecting-IP`, todas las peticiones comparten la clave `sin-ip`, y los límites de producción frenarían la propia suite. El estado de los Durable Objects va a un directorio temporal (`--persist-to`), para que los contadores no pasen de una corrida a otra.
+  - El frontend, con `next build` + `next start` en el puerto 3000 y `NEXT_PUBLIC_API_URL=http://localhost:8787`. No se usa OpenNext porque su build falla en Windows; el build de OpenNext ya se verifica en el job `verificar`. `localhost:3000` y `localhost:8787` son el mismo sitio para el navegador, así que la cookie `SameSite=Lax` viaja con `credentials: 'include'`, igual que entre `xdtech.store` y `api.xdtech.store`.
+- **Datos:** migraciones y semillas `categorias` y `catalogo`, más un administrador de prueba (`ADMIN_CORREO` y `ADMIN_CONTRASENA` fijados en el job, solo para la base efímera de la CI). Cada prueba crea sus propias cuentas con correos aleatorios.
+- **CI:** un job `e2e`, paralelo a `verificar`, con el servicio Postgres e `playwright install --with-deps chromium`. `desplegar` depende de los dos. Si falla, sube el informe HTML como artefacto.
+- **Producción:** las pruebas marcadas `@humo` son de solo lectura (catálogo, filtros, detalle y páginas de cuenta). Con `E2E_URL=https://xdtech.store` corren contra producción sin levantar servidores ni crear datos.
+
+*Alternativas:* recorrer la aplicación a mano en cada sprint (no es repetible ni queda en la CI); levantar el frontend con OpenNext `preview` (más parecido a producción, pero no corre en Windows); Cypress (otra herramienta, sin ventaja aquí).
+
 ## Risks / Trade-offs
 
 - [El inicio de sesión supera los 10 ms de CPU: PBKDF2 ~6,5 ms, más la base de la petición, más 1 conexión con SCRAM ~4 ms] → Medirlo en producción con `wrangler tail` (tarea específica) y registrarlo. Si pasa de forma sostenida, las opciones son bajar las iteraciones o aceptar la ráfaga, porque el plan gratuito no corta al primer exceso, como se vio en el Sprint 0. Lo decide el desarrollador con el número en la mano.
@@ -138,6 +150,7 @@ Los valores por defecto viven en código y se validan al leerlos.
 - [Las filas escritas por los contadores se suman a las de `Inventario` en la cuota de 100.000 por día] → 1 o 2 filas por intento; las pruebas de límites corren en local.
 - [En el Sprint 3, el disponible vendrá del almacén y no de SQL, así que filtrar en SQL "disponible > 0" con paginación dejará de ser exacto] → `DisponibleService.disponibles()` ya es el único origen del valor mostrado. El Sprint 3 debe decidir cómo filtrar (por ejemplo, que el almacén mantenga la lista de agotados). Se deja anotado allí.
 - [Enumeración de cuentas por el registro, que responde 409 a un correo existente] → Lo exige la HU-01 ("mensaje claro"). Lo mitiga el límite por IP.
+- [Las pruebas de Playwright suman unos minutos a la CI (build de Next e instalación de Chromium)] → Corren en un job paralelo a `verificar`, con la caché de pnpm.
 - [El administrador inicial depende de un paso manual] → Está documentado en el README del API con el comando exacto. La semilla es idempotente.
 
 ## Migration Plan
