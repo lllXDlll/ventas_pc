@@ -30,7 +30,7 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.6.1",
+    "@cloudflare/vitest-plugin": "^1.7.0",
     "@swc/core": "^1.16.22",
     "@types/express": "^5.0.6",
     "@types/node": "^24.19.2",
@@ -41,6 +41,6 @@
     "typescript": "~6.0.3",
     "unplugin-swc": "^2.0.0",
     "vitest": "^5.1.0",
-    "wrangler": "^4.159.0"
+    "wrangler": "^4.160.0"
   }
 }
