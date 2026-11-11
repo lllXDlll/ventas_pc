@@ -27,6 +27,17 @@ describe('salud con dependencias reales', () => {
     expect(res.status).toBe(200);
   });
 
+  // Un solo PrismaClient por isolate con una conexión por petición (src/datos/prisma.ts):
+  // si dos peticiones compartieran un socket, workerd lo rechazaría y ready daría 503.
+  it('peticiones concurrentes y seguidas no comparten conexión', async () => {
+    for (let ronda = 0; ronda < 3; ronda++) {
+      const respuestas = await Promise.all(
+        Array.from({ length: 20 }, () => servidor.fetch('/health/ready')),
+      );
+      expect(respuestas.map((r) => r.status)).toEqual(Array(20).fill(200));
+    }
+  });
+
   it('GET /health/live responde 200', async () => {
     const res = await servidor.fetch('/health/live');
     expect(res.status).toBe(200);
