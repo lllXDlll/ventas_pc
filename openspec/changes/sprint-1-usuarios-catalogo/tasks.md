@@ -3,8 +3,8 @@
 ## 0. Correcciones y mantenimiento heredados del Sprint 0
 
 - [ ] 0.1 Retirar el secreto temporal con `npx wrangler secret delete PROTOTIPO_TOKEN` (lo hace el desarrollador) y quitar la línea de su `.dev.vars`; se verifica con `wrangler secret list`, que devuelve `[]`
-- [ ] 0.2 Subir `wrangler` y `@cloudflare/vitest-plugin` a su última versión estable sin excepciones de `minimumReleaseAge` en `pnpm-workspace.yaml`; se verifica con `pnpm outdated -r`, que no los lista, y con la CI en verde
-- [ ] 0.3 Una conexión a Postgres por petición HTTP (design D1): un contexto por petición en el servidor de `worker.ts`, reutilizado por `conPrisma()` y cerrado en el `close` de la respuesta; ampliar la prueba de integración de 60 peticiones concurrentes para comprobar que no quedan conexiones abiertas (`pg_stat_activity`) y agregar una prueba de que dos `conPrisma()` dentro de una petición comparten la conexión (mismo `pg_backend_pid()`); se verifica con `pnpm --filter api test:int` en verde
+- [x] 0.2 Subir `wrangler` y `@cloudflare/vitest-plugin` a su última versión estable sin excepciones de `minimumReleaseAge` en `pnpm-workspace.yaml`; se verifica con `pnpm outdated -r`, que no los lista, y con la CI en verde
+- [x] 0.3 Una conexión a Postgres por petición HTTP (design D1): un contexto por petición en el servidor de `worker.ts`, reutilizado por `conPrisma()` y cerrado en el `close` de la respuesta; ampliar la prueba de integración de 60 peticiones concurrentes para comprobar que no quedan conexiones abiertas (`pg_stat_activity`) y agregar una prueba de que dos `conPrisma()` dentro de una petición comparten la conexión (mismo `pg_backend_pid()`); se verifica con `pnpm --filter api test:int` en verde
 
 ## 1. Esquema y semillas
 
@@ -22,9 +22,9 @@
 ## 3. Autenticación y roles
 
 - [x] 3.1 Servicio de contraseñas con PBKDF2-SHA256, 50.000 iteraciones, el formato `pbkdf2$…`, comparación en tiempo constante y el hash ficticio para correos inexistentes (design D2); se verifica con pruebas unitarias (formato, verificación con otras iteraciones, contraseña incorrecta) y con la prueba de integración de 1.2 que verifica el hash generado en Node
-- [ ] 3.2 `POST /auth/registro` con DTO (correo, contraseña de 8 o más caracteres), 201, 409 por correo repetido sin distinguir mayúsculas y límite por IP; se verifica con pruebas e2e de los escenarios de la spec `autenticacion` (registro) y del límite de registro
-- [ ] 3.3 Sesiones (design D3): `POST /auth/login` con cookie y atributos según `COOKIE_DOMAIN`, error genérico 401 (correo inexistente, contraseña incorrecta y cuenta bloqueada), límites por correo y por IP, y limpieza de las sesiones vencidas o revocadas del usuario al iniciar sesión; se verifica con pruebas e2e de cada escenario de inicio de sesión, del límite por correo (incluido el reinicio al acertar) y del límite por IP
-- [ ] 3.4 Guarda global con `@RequiereSesion()`, `@Roles()` y `@UsuarioActual()` (design D7), `GET /auth/me` y `POST /auth/logout` (revocada y `revocada_en`, cookie vencida); se verifica con pruebas e2e: sin cookie 401, token desconocido 401, sesión vencida 401, sesión revocada 401, cuenta bloqueada 401 y `me` correcto
+- [x] 3.2 `POST /auth/registro` con DTO (correo, contraseña de 8 o más caracteres), 201, 409 por correo repetido sin distinguir mayúsculas y límite por IP; se verifica con pruebas e2e de los escenarios de la spec `autenticacion` (registro) y del límite de registro
+- [x] 3.3 Sesiones (design D3): `POST /auth/login` con cookie y atributos según `COOKIE_DOMAIN`, error genérico 401 (correo inexistente, contraseña incorrecta y cuenta bloqueada), límites por correo y por IP, y limpieza de las sesiones vencidas o revocadas del usuario al iniciar sesión; se verifica con pruebas e2e de cada escenario de inicio de sesión, del límite por correo (incluido el reinicio al acertar) y del límite por IP
+- [x] 3.4 Guarda global con `@RequiereSesion()`, `@Roles()` y `@UsuarioActual()` (design D7), `GET /auth/me` y `POST /auth/logout` (revocada y `revocada_en`, cookie vencida); se verifica con pruebas e2e: sin cookie 401, token desconocido 401, sesión vencida 401, sesión revocada 401, cuenta bloqueada 401 y `me` correcto
 - [ ] 3.5 Prueba e2e que recorre todas las rutas `/admin` registradas y comprueba 401 sin sesión y 403 con rol CLIENTE (design D7); se verifica haciéndola fallar con una ruta `/admin` temporal sin `@Roles` y viéndola pasar al quitarla
 - [ ] 3.6 Implementar `limpiarSesiones` en el despacho del cron (spec `tareas-programadas`), con el registro del número de sesiones borradas y la captura de errores de la base; se verifica con una prueba de integración de los cuatro tipos de sesión del escenario y con otra de fallo de Postgres
 

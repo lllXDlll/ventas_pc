@@ -3,10 +3,13 @@
 // Sin tabla tokens_recuperacion: HU-03 está diferida.
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  runtime      = "workerd"
-  moduleFormat = "esm"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  runtime             = "workerd"
+  moduleFormat        = "esm"
+  // Sin extensión en los imports: tsc compila a dist/ sin reescribirlos y Wrangler los
+  // empaqueta. Fijo, para que no dependa de allowImportingTsExtensions del tsconfig.
+  importFileExtension = ""
 }
 
 datasource db {
