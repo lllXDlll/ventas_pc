@@ -10,6 +10,9 @@ generator client {
   // Sin extensión en los imports: tsc compila a dist/ sin reescribirlos y Wrangler los
   // empaqueta. Fijo, para que no dependa de allowImportingTsExtensions del tsconfig.
   importFileExtension = ""
+  // Relaciones con JOIN en una sola consulta (tarea 10.4 del Sprint 1.5): cada viaje a Neon
+  // por Hyperdrive cuesta ~150 ms de latencia, y sin esto categoría y stock eran consultas aparte.
+  previewFeatures     = ["relationJoins"]
 }
 
 datasource db {
