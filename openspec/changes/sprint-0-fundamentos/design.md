@@ -69,7 +69,7 @@ Los contadores de límite de peticiones de registro e inicio de sesión (Sprint 
 
 ### D7. Hash de contraseñas: PBKDF2-SHA256 con Web Crypto como primera opción
 Web Crypto es nativo del runtime y no suma peso al bundle. Se miden 100 000 iteraciones, que según la documentación es el máximo de PBKDF2 en Workers (a confirmar en la prueba 5), y valores menores, y se elige el mayor que quede por debajo de unos 8 ms de CPU. Si ninguno da un costo aceptable, se mide argon2id en WASM (`hash-wasm`). Formato guardado: `pbkdf2$<iteraciones>$<sal>$<hash>`, para poder cambiar los parámetros más adelante.
-→ **El costo final queda pendiente de la medición (P7).**
+→ **Fijado con la prueba 5: 50.000 iteraciones (P7).**
 
 ### D8. Frontend con el adaptador OpenNext para Cloudflare
 `apps/web` se despliega con `@opennextjs/cloudflare` y Wrangler. La prueba 2 valida una página con SSR y un `fetch` con `credentials: 'include'` a la API. Si falla, el plan B es Vercel con el DNS en Cloudflare (sección 2.2 de la parte técnica).
@@ -127,7 +127,7 @@ Todas las decisiones de configuración ya están tomadas por el desarrollador (2
 | P4 | Versión de Node.js en local y CI | 22 LTS / 24 | **Decidido: Node 24** (el instalado en local; se fija en `.nvmrc`, `engines` y la CI) |
 | P5 | Acceso a Postgres desde el Worker | — | **Decidido: Hyperdrive + `adapter-pg`** (D4); en local, `localConnectionString` a Docker |
 | P6 | Nombre de la rama principal y hosting del repo | `main` en GitHub, público o privado | **Decidido: `main`, repositorio público.** Como cualquiera puede leerlo, ninguna cadena, token ni contenido de `.dev.vars` puede llegar a un commit (tareas 1.1 y 6.4) |
-| P7 | Costo del hash de contraseñas | Se decide con la medición de la prueba 5 | PBKDF2 con el máximo de iteraciones que quepa en ~8 ms |
+| P7 | Costo del hash de contraseñas | Se decide con la medición de la prueba 5 | **Medido: PBKDF2-SHA256 con 50.000 iteraciones** (~6,5 ms de CPU de hash; Workers no admite más de 100.000). Ver docs/compatibilidad-cloudflare.md, prueba 5 |
 | P8 | Hora de la limpieza diaria de sesiones | Cualquier hora UTC | **Decidido: 04:00 UTC** (23:00 en Perú) |
 
 Decisiones que **el propio Sprint 0 resuelve con pruebas** (no hace falta responder ahora, pero bloquean el Sprint 1):
