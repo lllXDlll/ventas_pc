@@ -80,6 +80,16 @@ function prismaDelIsolate(): PrismaClient {
 }
 
 /**
+ * Prepara el cliente del isolate sin abrir conexiones: instancia el compilador de
+ * consultas en WASM y deserializa el esquema. Pensado para el ámbito global del
+ * módulo (worker.ts), donde esa CPU cuenta como arranque y no como CPU de la petición.
+ * `$connect()` solo llama a `fabrica.connect()`, que no hace E/S.
+ */
+export async function precalentarPrisma(): Promise<void> {
+  await prismaDelIsolate().$connect();
+}
+
+/**
  * Ejecuta `fn` con el cliente del isolate y una conexión propia de esta llamada,
  * que se cierra al terminar. Llamadas concurrentes no comparten conexión.
  */

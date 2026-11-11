@@ -7,6 +7,7 @@ import { httpServerHandler } from 'cloudflare:node';
 import { env } from 'cloudflare:workers';
 import express from 'express';
 import { crearApp } from './app';
+import { precalentarPrisma } from './datos/prisma';
 import { despachar } from './programadas/despacho';
 
 export { Inventario } from './reservas/inventario';
@@ -53,6 +54,8 @@ const http = httpServerHandler({ port: PUERTO });
 // asegurarApp() la reintenta de forma perezosa en la primera petición.
 try {
   await asegurarApp();
+  // Lo mismo para Prisma: WASM y esquema listos antes de la primera consulta.
+  await precalentarPrisma();
 } catch (error) {
   console.error(
     JSON.stringify({
