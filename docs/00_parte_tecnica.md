@@ -29,7 +29,8 @@ Cloudflare es la plataforma, pero **ningún supuesto de compatibilidad se da por
 
 - Los Workers no ejecutan un servidor Node tradicional. Se usa `node:http` con `httpServerHandler` de `cloudflare:node`: NestJS se inicializa una vez por instancia del Worker y sus peticiones se enrutan al servidor HTTP. El puerto que se pasa a `listen()` es solo una clave de enrutamiento, no un puerto de red.
 - NestJS y el cliente de Prisma se inicializan en el **ámbito global del módulo** (`await` de nivel superior en `src/worker.ts`), sin E/S. Así esa CPU cuenta como arranque de la instancia y no como CPU de la primera petición (Sprint 0, prueba 1: la primera petición bajó de 32–128 ms a 10–18 ms de CPU).
-- Prisma usa **un `PrismaClient` por instancia y una conexión `pg` por petición**: toda consulta pasa por `conPrisma()` (`src/datos/prisma.ts`), que abre la conexión de esa llamada y la cierra al terminar. Crear un cliente por petición costaba de 14 a 24 ms de CPU en cada consulta.
+- Prisma usa **un `PrismaClient` por instancia y una sola conexión `pg` por petición HTTP**. El `fetch` del Worker ejecuta cada petición dentro de `enPeticion()`, que guarda una conexión perezosa en `AsyncLocalStorage`. Todas las llamadas a `conPrisma()` de esa petición la comparten, y se cierra con `waitUntil` al responder. Fuera de una petición (cron, scripts), `conPrisma()` abre y cierra su propia conexión. Motivo: cada conexión nueva cuesta ~4 ms de CPU por la autenticación SCRAM, y crear un cliente por petición costaba de 14 a 24 ms. Dentro de una transacción interactiva no se lanzan consultas en paralelo, porque comparten conexión.
+- `workerd` cierra los sockets de una petición al terminar la invocación, aunque la API no los cierre: ninguna conexión sobrevive a su petición (comprobado en el Sprint 1).
 - Con fecha de compatibilidad `2026-08-04` o posterior no hace falta ningún flag de Node.js (`nodejs_compat` viene activado). Con fechas anteriores habría que agregarlo.
 - Soportado: `http`, `https`, `crypto`, `buffer`, `stream`, `events`, `url`, `path`, `process`, `util`, `zlib`, Web Crypto. `net` solo para conexiones TCP salientes (`net.Server` no existe). `child_process`, `worker_threads`, `cluster`, `vm` y similares son stubs que no funcionan.
 - No hay eventos `upgrade` (sin WebSockets), ni trailers, ni acceso real al socket. La IP del cliente se lee de `CF-Connecting-IP` (ver 2.2). En el Sprint 0, `req.socket.remoteAddress` devolvió el mismo valor, pero no es un comportamiento documentado y no se usa.
@@ -55,9 +56,10 @@ Cloudflare es la plataforma, pero **ningún supuesto de compatibilidad se da por
 - Ambos subdominios son del mismo sitio para el navegador: no hay proxy desde Next.js ni cookies de terceros.
 
 **Sesión.** Cookie de sesión con identificador opaco; la sesión se guarda en Postgres (tabla `sesiones`).
-- Cookie: `httpOnly; Secure; SameSite=Lax; Domain=.xdtech.store` (en desarrollo local, sin `Domain` ni `Secure`).
-- El valor de la cookie es un token aleatorio; en la base de datos solo se guarda su hash.
-- Vencimiento: 7 días (variable de entorno). Cerrar sesión marca la sesión como revocada.
+- Cookie `xd_sesion`: `HttpOnly; Secure; SameSite=Lax; Domain=.xdtech.store; Path=/` y `Max-Age` de `SESSION_TTL_DAYS` días. En desarrollo local va sin `Domain` ni `Secure` (`COOKIE_DOMAIN` vacío).
+- Contraseñas: PBKDF2-SHA256 con 50.000 iteraciones y sal propia, guardadas como `pbkdf2$<iteraciones>$<sal>$<hash>`. Si el correo no existe, se calcula un hash ficticio, para que el tiempo de respuesta no revele qué cuentas existen.
+- El valor de la cookie es un token aleatorio de 256 bits; en la base de datos solo se guarda su SHA-256 (`token_hash`).
+- Vencimiento: 7 días (variable de entorno). Cerrar sesión marca la sesión como revocada y guarda `revocada_en`.
 - Limpieza: un **Cron Trigger diario** borra las sesiones vencidas y las revocadas con más de un día; además, al iniciar sesión se borran las vencidas o revocadas de ese usuario. Una sesión vencida o revocada siempre se rechaza, se haya borrado o no.
 - CORS: la API permite credenciales únicamente desde el origen del frontend (variable de entorno), nunca con comodín.
 - Se descarta JWT: no permite invalidar la sesión al cerrar sesión sin una lista de bloqueo adicional.
@@ -105,7 +107,7 @@ repo/
 | Tabla | Contenido principal |
 |---|---|
 | usuarios | correo, hash de contraseña, rol (CLIENTE / ADMIN), estado |
-| sesiones | hash del token de sesión, usuario, vencimiento, revocada, fecha de creación |
+| sesiones | hash del token de sesión, usuario, vencimiento, revocada, fecha de revocación (`revocada_en`), fecha de creación |
 | categorias | procesador, placa madre, RAM, tarjeta gráfica, fuente, gabinete, almacenamiento, equipo armado |
 | productos | nombre, tipo (COMPONENTE / EQUIPO), precio, activo, atributos técnicos en JSONB |
 | stock | producto, cantidad física, versión (bloqueo optimista) |
@@ -119,7 +121,20 @@ repo/
 | notificaciones | usuario, tipo, mensaje, leída |
 | uso_asistente | usuario, presupuesto, uso, resultado, latencia, si se usó respaldo |
 
-Atributos técnicos esperados en JSONB: `socket`, `tipoRam`, `velocidadRam`, `maxModulosRam`, `potenciaConsumidaW`, `potenciaEntregadaW`, `dimensiones` (largo GPU, alto disipador, medidas del gabinete), `factorForma`, `interfacesAlmacenamiento`.
+Atributos técnicos obligatorios en JSONB, por categoría (fijados en el Sprint 1; la API los valida al crear o editar un producto y admite atributos adicionales):
+
+| Categoría | Atributos obligatorios |
+|---|---|
+| PROCESADOR | `socket` (texto), `potenciaConsumidaW` (entero) |
+| PLACA_MADRE | `socket`, `tipoRam`, `factorForma` (texto), `maxModulosRam` (entero), `interfacesAlmacenamiento` (lista) |
+| RAM | `tipoRam` (texto), `velocidadRam`, `modulos` (entero) |
+| TARJETA_GRAFICA | `potenciaConsumidaW`, `largoMm` (entero) |
+| FUENTE | `potenciaEntregadaW` (entero) |
+| GABINETE | `factoresFormaSoportados` (lista), `largoGpuMaxMm`, `altoDisipadorMaxMm` (entero) |
+| ALMACENAMIENTO | `interfaz` (texto) |
+| EQUIPO_ARMADO | ninguno (descripción libre) |
+
+Los enteros son positivos y las listas, de textos no vacíos. Las medidas llevan la unidad en el nombre (`largoMm`) en lugar de un objeto `dimensiones`. El motor de reglas del Sprint 2 usa estos nombres.
 
 Un equipo armado se registra como producto propio con su propio stock.
 
@@ -193,8 +208,8 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 | Escenario de carga | 300 usuarios virtuales, componente con 5 unidades | Script k6 |
 | Timeout de la API de IA | Configurable | Variable de entorno |
 | Duración de la sesión | 7 días | Variable de entorno |
-| Límite de registro | 5 registros por hora por IP | Variable de entorno |
-| Límite de inicio de sesión | 5 intentos fallidos por 15 min por correo; 50 por 15 min por IP | Variable de entorno |
+| Límite de registro | 5 registros por hora por IP | `LIMITE_REGISTRO_MAX`, `LIMITE_REGISTRO_VENTANA_MIN` |
+| Límite de inicio de sesión | 5 intentos fallidos por 15 min por correo; 50 por 15 min por IP | `LIMITE_LOGIN_CORREO_MAX`, `LIMITE_LOGIN_IP_MAX`, `LIMITE_LOGIN_VENTANA_MIN` |
 | Límite del asistente | 10 consultas por 24 h por usuario | Variable de entorno |
 | Reconciliación periódica | cada 5 min | Cron Trigger en `wrangler.jsonc` |
 

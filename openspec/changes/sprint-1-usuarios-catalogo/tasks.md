@@ -47,7 +47,7 @@
 
 - [ ] 6.1 Desplegar en `main` (CI en verde con la migración y la semilla de categorías), ejecutar las semillas `admin` y `catalogo` contra Neon y recorrer en `https://xdtech.store` el registro, el inicio de sesión, el catálogo con filtros, el panel como ADMIN y el cierre de sesión; se verifica con cada paso funcionando en Chrome y con la cookie `Domain=.xdtech.store` presente
 - [ ] 6.2 Medir con `wrangler tail` la CPU de `POST /auth/login` (acierto y fallo), `POST /auth/registro`, `GET /auth/me` y `GET /productos` en producción, y registrar los números y las conexiones por petición en `docs/compatibilidad-cloudflare.md`; se verifica con la sección de mediciones del Sprint 1 escrita y con la decisión sobre las iteraciones de PBKDF2 tomada por el desarrollador
-- [ ] 6.3 Actualizar `docs/00_parte_tecnica.md` y `docs/01_arquitectura_despliegue.md` con la conexión por petición, `revocada_en`, el nombre de la cookie, los atributos por categoría (tabla D8) y las variables `LIMITE_*`; se verifica con una búsqueda de cada concepto en `docs/`
+- [x] 6.3 Actualizar `docs/00_parte_tecnica.md` y `docs/01_arquitectura_despliegue.md` con la conexión por petición, `revocada_en`, el nombre de la cookie, los atributos por categoría (tabla D8) y las variables `LIMITE_*`; se verifica con una búsqueda de cada concepto en `docs/`
 
 ## Workflow follow-up
 

@@ -106,7 +106,7 @@ Puertos: DisponibleService (almacén), ProveedorIA, Prisma (Postgres)
 ### 2.3 Base de datos (Neon)
 
 - El Worker se conecta por **Hyperdrive** (binding `HYPERDRIVE`), creado con la cadena **directa** de Neon y el **caché de consultas desactivado**. La cadena vive en la configuración de Hyperdrive, no en el Worker. La misma cadena directa se usa para las migraciones en la CI (secreto `NEON_DIRECT_URL`).
-- Prisma: un `PrismaClient` por instancia del Worker y una conexión `pg` por petición, a través de `conPrisma()`.
+- Prisma: un `PrismaClient` por instancia del Worker y **una sola conexión `pg` por petición HTTP**. `enPeticion()` la abre con la primera consulta, todas las llamadas a `conPrisma()` de la petición la comparten, y se cierra con `waitUntil` al responder. En el Sprint 1 se midió que un inicio de sesión, con 3 consultas, abre una sola conexión.
 - Hyperdrive, plan gratuito: 100.000 consultas al día, ~20 conexiones al origen y consultas de hasta 60 s.
 - Las migraciones de Prisma se aplican en un paso de CI, nunca al arrancar el Worker.
 - Neon suspende el cómputo tras 5 minutos sin uso (la primera petición es más lenta); antes de la demo se despierta con una petición real. Plan gratuito: 100 CU-horas al mes.
@@ -131,8 +131,9 @@ La elección se tomó con la regla de la sección 5.3 de `00_parte_tecnica.md` y
 
 ### 2.5 Sesiones y límites de peticiones
 
-- Sesión: token opaco aleatorio en cookie `httpOnly; Secure; SameSite=Lax; Domain=.xdtech.store`, 7 días. En Postgres se guarda solo el hash del token (tabla `sesiones`). Sin JWT.
-- Límites: registro por IP (5/hora), inicio de sesión por correo (5 fallos/15 min, se reinicia al acertar) y por IP (50/15 min), asistente por usuario (10/24 h contado desde `uso_asistente`). Los contadores de registro e inicio de sesión viven en el Durable Object `Limites`, nunca en la memoria del Worker. La IP se lee de `CF-Connecting-IP`, agrupando las direcciones IPv6 por prefijo /64.
+- Sesión: token opaco aleatorio en la cookie `xd_sesion` (`HttpOnly; Secure; SameSite=Lax; Domain=.xdtech.store`), 7 días. En Postgres se guarda solo su SHA-256 (tabla `sesiones`). El cierre de sesión la revoca y registra `revocada_en`, y el cron diario borra las vencidas y las revocadas hace más de un día. Sin JWT.
+- Roles: una guarda global de NestJS lee `@RequiereSesion()` y `@Roles()`. Todo `/admin` exige ADMIN, y una prueba recorre todas las rutas `/admin` registradas para que ninguna quede abierta.
+- Límites: registro por IP (5/hora), inicio de sesión por correo (5 fallos/15 min, se reinicia al acertar) y por IP (50/15 min), asistente por usuario (10/24 h contado desde `uso_asistente`). Los contadores de registro e inicio de sesión viven en el Durable Object `Limites`, uno por clave (`registro:ip:…`, `login:correo:…`, `login:ip:…`), con ventana fija y nunca en la memoria del Worker. La IP se lee de `CF-Connecting-IP`, agrupando las direcciones IPv6 por prefijo /64. Los valores se configuran con `LIMITE_REGISTRO_MAX`, `LIMITE_REGISTRO_VENTANA_MIN`, `LIMITE_LOGIN_CORREO_MAX`, `LIMITE_LOGIN_IP_MAX` y `LIMITE_LOGIN_VENTANA_MIN`. Al superar un límite, la API responde 429 con `Retry-After`.
 
 ### 2.6 Frontend
 
