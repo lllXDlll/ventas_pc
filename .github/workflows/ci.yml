@@ -80,7 +80,9 @@ jobs:
   # Pruebas e2e de navegador con Playwright (design D14 del Sprint 1): API con wrangler dev
   # y frontend con next build + start, contra el Postgres efímero del job.
   e2e:
-    runs-on: ubuntu-latest
+    # Fijo: playwright install --with-deps solo conoce versiones concretas de Ubuntu, y
+    # ubuntu-latest está migrando a Ubuntu 26.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
       postgres:

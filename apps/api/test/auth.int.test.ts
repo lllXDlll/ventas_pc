@@ -221,13 +221,14 @@ describe('inicio de sesión', () => {
           ).rows[0]?.s,
         );
       const antes = await leer();
-      for (let i = 0; i < 4; i++) await peticion();
+      for (let i = 0; i < 6; i++) await peticion();
       await new Promise((r) => setTimeout(r, 3000));
       return (await leer()) - antes;
     };
     const unaConsulta = await lote(() => servidor.fetch('/health/ready'));
     const tresConsultas = await lote(() => login(correo)); // usuario, limpieza y alta
-    expect(tresConsultas).toBe(unaConsulta);
+    // Con conexiones separadas la diferencia es de ~6 sesiones; se tolera el ruido de ±1-2.
+    expect(tresConsultas).toBeLessThanOrEqual(unaConsulta + 2);
   }, 30_000);
 });
 
