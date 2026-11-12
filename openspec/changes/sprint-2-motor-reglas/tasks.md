@@ -33,9 +33,9 @@
 
 ## 4. Frontend: armador
 
-- [ ] 4.1 Mover `ProductCard`, `ImagenProducto`, `StockBadge` y `SpecsTable` a `components/producto/` y actualizar las importaciones (design D8), en un commit aislado. Se verifica con `pnpm lint`, `typecheck` y Playwright en verde.
-- [ ] 4.2 `features/armador`: `api.ts` y los hooks `useValidacion` (antirrebote de 300 ms), `useConfiguracion` y las mutaciones. Se verifica con `typecheck` y con el lint de capas.
-- [ ] 4.3 Pantalla `/armador`:
+- [x] 4.1 Mover `ProductCard`, `ImagenProducto`, `StockBadge` y `SpecsTable` a `components/producto/` y actualizar las importaciones (design D8), en un commit aislado. Se verifica con `pnpm lint`, `typecheck` y Playwright en verde.
+- [x] 4.2 `features/armador`: `api.ts` y los hooks `useValidacion` (antirrebote de 300 ms), `useConfiguracion` y las mutaciones. Se verifica con `typecheck` y con el lint de capas.
+- [x] 4.3 Pantalla `/armador`:
   - pasos por categoría con productos con stock;
   - `ProductCard` seleccionable;
   - selección en la URL;
@@ -44,18 +44,18 @@
   - estados de carga, vacío y error.
 
   Se verifica con una prueba de Playwright: elegir un procesador LGA1700 y una placa AM5 muestra el rechazo de socket, y cambiar a una placa LGA1700 lo quita.
-- [ ] 4.4 Guardar y retomar:
+- [x] 4.4 Guardar y retomar:
   - sin sesión, va a `/ingresar?volver=…`, con `volver` limitado a rutas internas;
   - con sesión, `POST` o `PATCH`, y la URL pasa a incluir `config=`;
   - "Agregar al carrito" se muestra según `agregable`.
 
   Se verifica con una prueba de Playwright: guardar sin sesión, iniciar sesión, volver con la selección intacta, guardar y recargar.
-- [ ] 4.5 "Arma tu PC" como enlace a `/armador` (shell y menú móvil) y "Usar en mi armado" como enlace a `/armador?p=<id>:1`. Ajustar la prueba de "accesos de sprints futuros" para que ya no incluya el armado. Se verifica con una prueba de Playwright desde el detalle y con la prueba ajustada en verde.
+- [x] 4.5 "Arma tu PC" como enlace a `/armador` (shell y menú móvil) y "Usar en mi armado" como enlace a `/armador?p=<id>:1`. Ajustar la prueba de "accesos de sprints futuros" para que ya no incluya el armado. Se verifica con una prueba de Playwright desde el detalle y con la prueba ajustada en verde.
 
 ## 5. Pruebas, documentación y cierre
 
-- [ ] 5.1 Agregar `/armador` a las pruebas de axe y a la de 360 px. Además, una prueba `@humo` del armador que valida sin guardar. Se verifica con `pnpm test:e2e` en verde, en local y en la CI.
-- [ ] 5.2 Actualizar la documentación:
+- [x] 5.1 Agregar `/armador` a las pruebas de axe y a la de 360 px. Además, una prueba `@humo` del armador que valida sin guardar. Se verifica con `pnpm test:e2e` en verde, en local y en la CI.
+- [x] 5.2 Actualizar la documentación:
   - en `docs/00_parte_tecnica.md`: la tabla de atributos con `velocidadRamMaxMhz` y el opcional `altoDisipadorMm`, y los parámetros de POTENCIA;
   - en `docs/sprint_02_motor_reglas.md`: una nota con las tres decisiones y el endpoint `GET /configuraciones`.
 

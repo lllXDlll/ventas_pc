@@ -5,7 +5,7 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 const WEB = 'apps/web/src';
-const FUNCIONALIDADES = ['catalogo', 'auth', 'admin'];
+const FUNCIONALIDADES = ['catalogo', 'auth', 'admin', 'armador'];
 const sinSubir = {
   // Dentro de una funcionalidad o de components/ se admite ../ (misma capa); salir de ella
   // con ../../ no, para que la regla de capas no se pueda saltar.

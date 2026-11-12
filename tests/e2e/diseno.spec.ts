@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { ADMIN, ID_AGOTADO, ingresar } from './datos';
 
-/** Las 7 pantallas del sprint (el panel necesita la sesión de un ADMIN). */
+/** Las pantallas del sitio (el panel necesita la sesión de un ADMIN); el armador desde el Sprint 2. */
 const PANTALLAS = [
   { nombre: 'inicio', ruta: '/' },
   { nombre: 'listado', ruta: '/catalogo' },
@@ -12,6 +12,7 @@ const PANTALLAS = [
   { nombre: 'inicio de sesión', ruta: '/ingresar' },
   { nombre: 'registro', ruta: '/registro' },
   { nombre: 'recuperar', ruta: '/recuperar' },
+  { nombre: 'armador', ruta: '/armador' },
 ];
 
 async function abrirPanel(page: Page) {

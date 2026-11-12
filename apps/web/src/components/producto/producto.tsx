@@ -1,5 +1,6 @@
 import { ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { BotonProximamente } from '@/components/ui/proximamente';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -68,11 +69,29 @@ export function ImagenProducto({
 }
 
 /** Tarjeta de producto (design D10 y documento del Sprint 1.5). */
-export function ProductCard({ producto }: { producto: Producto }) {
+/**
+ * Tarjeta de producto. `accion` reemplaza el botón por defecto (el armador la usa para
+ * "Elegir"); `seleccionada` la resalta.
+ */
+export function ProductCard({
+  producto,
+  accion,
+  seleccionada = false,
+}: {
+  producto: Producto;
+  accion?: ReactNode;
+  seleccionada?: boolean;
+}) {
   const chips = chipsDeAtributos(producto.categoria.codigo, producto.atributos);
   const enlace = `/catalogo/${producto.id}`;
   return (
-    <article className="group relative flex flex-col gap-3 rounded-card border border-border bg-card p-3 transition-shadow hover:border-primary hover:shadow-hover">
+    <article
+      aria-current={seleccionada || undefined}
+      className={cn(
+        'group relative flex flex-col gap-3 rounded-card border border-border bg-card p-3 transition-shadow hover:border-primary hover:shadow-hover',
+        seleccionada && 'border-primary shadow-hover',
+      )}
+    >
       <Link href={enlace} tabIndex={-1} aria-hidden="true">
         <ImagenProducto producto={producto} />
       </Link>
@@ -101,16 +120,18 @@ export function ProductCard({ producto }: { producto: Producto }) {
           <StockBadge disponible={producto.disponible} />
         </div>
       </div>
-      {/* Visible siempre en móvil; en escritorio, completo al pasar el cursor. */}
-      <BotonProximamente
-        variante="contorno"
-        tamano="sm"
-        className="w-full md:opacity-70 md:group-hover:opacity-100 [&>button]:w-full"
-      >
-        <ShoppingCart strokeWidth={1.5} />
-        <span className="md:hidden">Añadir</span>
-        <span className="hidden md:inline">Añadir al carrito</span>
-      </BotonProximamente>
+      {accion ?? (
+        // Visible siempre en móvil; en escritorio, completo al pasar el cursor.
+        <BotonProximamente
+          variante="contorno"
+          tamano="sm"
+          className="w-full md:opacity-70 md:group-hover:opacity-100 [&>button]:w-full"
+        >
+          <ShoppingCart strokeWidth={1.5} />
+          <span className="md:hidden">Añadir</span>
+          <span className="hidden md:inline">Añadir al carrito</span>
+        </BotonProximamente>
+      )}
     </article>
   );
 }

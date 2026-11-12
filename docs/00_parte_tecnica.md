@@ -131,8 +131,8 @@ Atributos técnicos obligatorios en JSONB, por categoría (fijados en el Sprint 
 
 | Categoría | Atributos obligatorios |
 |---|---|
-| PROCESADOR | `socket` (texto), `potenciaConsumidaW` (entero) |
-| PLACA_MADRE | `socket`, `tipoRam`, `factorForma` (texto), `maxModulosRam` (entero), `interfacesAlmacenamiento` (lista) |
+| PROCESADOR | `socket` (texto), `potenciaConsumidaW` (entero); opcional: `altoDisipadorMm` (entero, disipador incluido; Sprint 2) |
+| PLACA_MADRE | `socket`, `tipoRam`, `factorForma` (texto), `velocidadRamMaxMhz` (entero, Sprint 2), `maxModulosRam` (entero), `interfacesAlmacenamiento` (lista) |
 | RAM | `tipoRam` (texto), `velocidadRam`, `modulos` (entero) |
 | TARJETA_GRAFICA | `potenciaConsumidaW`, `largoMm` (entero) |
 | FUENTE | `potenciaEntregadaW` (entero) |
@@ -211,7 +211,8 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 | Parámetro | Valor | Dónde se configura |
 |---|---|---|
 | TTL de reservas | 10 min | Variable de entorno (usar valor corto en pruebas) |
-| Margen de potencia de la fuente | 20 % | Parámetro en `reglas_compatibilidad` |
+| Margen de potencia de la fuente | 20 % | Parámetro `margenPorcentaje` de la regla `POTENCIA` en `reglas_compatibilidad` |
+| Consumo base (placa, RAM, almacenamiento) | 0 W | Parámetro `consumoBaseW` de la regla `POTENCIA` |
 | Escenario de carga | 300 usuarios virtuales, componente con 5 unidades | Script k6 |
 | Timeout de la API de IA | Configurable | Variable de entorno |
 | Duración de la sesión | 7 días | Variable de entorno |

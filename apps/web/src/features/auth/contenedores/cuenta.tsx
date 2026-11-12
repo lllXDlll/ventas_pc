@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { mensajeDeError } from '@/lib/api-client';
 import { registrar } from '../api';
@@ -25,13 +25,23 @@ export function CuentaCabecera({ className }: { className?: string }) {
 }
 
 /** Inicio de sesión (spec autenticacion): el error es siempre el genérico de la API. */
+/** Solo rutas internas: evita redirecciones abiertas a otros sitios. */
+function destinoSeguro(volver: string | null): string | null {
+  return volver && volver.startsWith('/') && !volver.startsWith('//') ? volver : null;
+}
+
 export function IngresarContenedor() {
   const ingreso = useIniciarSesion();
   const router = useRouter();
+  const volver = destinoSeguro(useSearchParams().get('volver'));
   return (
     <AuthCard
       titulo="Iniciar sesión"
-      descripcion="Accede para guardar tus armados y comprar."
+      descripcion={
+        volver
+          ? 'Inicia sesión para guardar tu armado.'
+          : 'Accede para guardar tus armados y comprar.'
+      }
       pie={
         <div className="flex flex-col gap-2">
           <Link href="/recuperar" className="text-primary-soft underline underline-offset-2">
@@ -51,7 +61,8 @@ export function IngresarContenedor() {
         error={ingreso.isError ? mensajeDeError(ingreso.error, 'No se pudo iniciar sesión.') : null}
         onEnviar={(datos) =>
           ingreso.mutate(datos, {
-            onSuccess: (u) => router.push(u.rol === 'ADMIN' ? '/admin/catalogo' : '/catalogo'),
+            onSuccess: (u) =>
+              router.push(volver ?? (u.rol === 'ADMIN' ? '/admin/catalogo' : '/catalogo')),
           })
         }
       />

@@ -5,6 +5,19 @@
 **Objetivo:** validar la compatibilidad de cualquier configuración y permitir el armado manual.
 **Depende de:** Sprint 1 (catálogo con atributos técnicos, auth, roles).
 
+## Decisiones tomadas al planificar (2026-11-11)
+
+Detalle en `openspec/changes/sprint-2-motor-reglas/`.
+
+| Tema | Decisión |
+|---|---|
+| Velocidad de la RAM (HU-10) | La placa madre gana el atributo obligatorio `velocidadRamMaxMhz`; la semilla lo completa en las placas de ejemplo |
+| Alto del disipador (HU-12) | No hay categoría de disipadores: el procesador admite el atributo opcional `altoDisipadorMm` (disipador incluido). Si falta, `DIMENSIONES` solo compara el largo de la GPU |
+| "Agregable al carrito" (HU-14) | Sin rechazos, con al menos un producto y con stock suficiente; no exige un armado completo |
+| Validación en vivo | `POST /compatibilidad/validar` es público (el armador valida antes de iniciar sesión); guardar exige sesión |
+| Retomar armados | Además de lo pedido, `GET /configuraciones` lista las configuraciones propias |
+| Potencia | Consumo = procesador + tarjeta gráfica + `consumoBaseW` (0 W por defecto), más el margen (20 %) |
+
 ## Diseño del motor (aplica a HU-09 a HU-13)
 Servicio determinístico en `compatibilidad/`. Cada regla es una clase con interfaz común:
 `validar(configuracion): { aprobado: boolean, codigo?: string, motivo?: string }`.

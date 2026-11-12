@@ -1,7 +1,9 @@
 'use client';
 
 import { ShoppingCart, Wrench } from 'lucide-react';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 import { EstadoError } from '@/components/ui/estado';
 import { BotonProximamente } from '@/components/ui/proximamente';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,9 +80,14 @@ export function DetalleContenedor({ id }: { id: string }) {
             <BotonProximamente tamano="lg">
               <ShoppingCart strokeWidth={1.5} /> Añadir al carrito
             </BotonProximamente>
-            <BotonProximamente variante="contorno" tamano="lg">
-              <Wrench strokeWidth={1.5} /> Usar en mi armado
-            </BotonProximamente>
+            {/* Sprint 2: abre el armador con este producto elegido (equipos armados no). */}
+            {categoria.codigo !== 'EQUIPO_ARMADO' && (
+              <Button asChild variante="contorno" tamano="lg">
+                <Link href={`/armador?p=${producto.id}:1`}>
+                  <Wrench strokeWidth={1.5} /> Usar en mi armado
+                </Link>
+              </Button>
+            )}
           </div>
           <section className="flex flex-col gap-3">
             <h2 className="text-xl">Especificaciones técnicas</h2>
