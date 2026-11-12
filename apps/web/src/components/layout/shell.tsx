@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { BotonProximamente } from '../ui/proximamente';
 import { ACCESOS } from './accesos';
 import { MobileDrawer, SearchBar } from './interactivos';
+import { NavAdmin } from './nav-admin';
 
 // Organismos del shell de la tienda (Atomic Design). Sin datos propios: la zona de cuenta
 // y el mega menú llegan como slots desde app/ (spec arquitectura-frontend).
@@ -175,17 +176,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <p className="mb-3 text-xs font-medium tracking-wide text-text-muted uppercase">
           Administración
         </p>
-        <ul className="flex gap-1 lg:flex-col">
-          <li>
-            <Link
-              href="/admin/catalogo"
-              className="flex h-9 items-center rounded-control bg-card px-3 text-sm font-medium"
-              aria-current="page"
-            >
-              Productos y stock
-            </Link>
-          </li>
-        </ul>
+        <NavAdmin />
       </aside>
       <div className="min-w-0">{children}</div>
     </div>

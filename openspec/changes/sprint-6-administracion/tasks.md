@@ -53,19 +53,19 @@
 
 ## 5. Pantallas del panel
 
-- [ ] 5.1 Agregar `recharts@3.10.1` a `apps/web` y los enlaces "Reglas", "Reporte de ventas" y "Reporte del asistente" en `AdminShell`. Se verifica con `pnpm build` del web en verde y anotando el tamaño del chunk de Recharts, que no debe aparecer en las rutas de la tienda.
-- [ ] 5.2 `/admin/reglas`: tarjetas por regla generadas desde la descripción de parámetros, con interruptor, campos con unidad y límites, guardado por tarjeta y error de la API junto al campo. E2e:
+- [x] 5.1 Agregar `recharts@3.10.1` a `apps/web` y los enlaces "Reglas", "Reporte de ventas" y "Reporte del asistente" en `AdminShell`. Se verifica con `pnpm build` del web en verde y anotando el tamaño del chunk de Recharts, que no debe aparecer en las rutas de la tienda.
+- [x] 5.2 `/admin/reglas`: tarjetas por regla generadas desde la descripción de parámetros, con interruptor, campos con unidad y límites, guardado por tarjeta y error de la API junto al campo. E2e:
   - desactivar `SOCKET`;
   - margen 25 que persiste al recargar;
   - 150 muestra el error y no guarda;
   - axe sin violaciones graves y 360 px.
   - La prueba restablece las reglas.
-- [ ] 5.3 `/admin/reportes/ventas`: filtro en la URL, tarjetas, gráfico de barras por día cargado con `next/dynamic` y tabla del top 10, con estados de carga, vacío y error. E2e:
+- [x] 5.3 `/admin/reportes/ventas`: filtro en la URL, tarjetas, gráfico de barras por día cargado con `next/dynamic` y tabla del top 10, con estados de carga, vacío y error. E2e:
   - el filtro cambia la URL y los datos;
   - rango sin ventas muestra el mensaje;
   - la tabla tiene encabezados;
   - axe y 360 px.
-- [ ] 5.4 `/admin/reportes/asistente`: filtro, tarjetas (consultas, % de respaldo, latencia y costo estimado), gráfico por uso y tabla de motivos. E2e:
+- [x] 5.4 `/admin/reportes/asistente`: filtro, tarjetas (consultas, % de respaldo, latencia y costo estimado), gráfico por uso y tabla de motivos. E2e:
   - con consultas del proveedor simulado sembradas por la prueba, se ven los indicadores y los cinco usos;
   - axe y 360 px.
 
