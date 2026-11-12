@@ -76,7 +76,7 @@
 - [x] 10.2 Prueba de desbordamiento a 360 px en las 7 pantallas y revisión manual en 768 y 1280 px. Se verifica con la prueba en verde y con capturas adjuntas al registro de 10.4
 - [x] 10.3 Comprobar que los productos sin disponible siguen sin aparecer como disponibles en el inicio, el listado y las facetas. Se verifica con las pruebas de integración y de Playwright existentes y con las de 2.3
 - [x] 10.4 Lighthouse móvil en `https://xdtech.store/catalogo` (accesibilidad ≥ 90 y rendimiento ≥ 80), registrado en `docs/compatibilidad-cloudflare.md`. Se verifica con la puntuación registrada y, si no llega, con la causa y la corrección aplicada — Resultado (2026-11-11): accesibilidad 100; rendimiento 71–79 por la latencia a Neon en us-east-2 (registrado con causa y correcciones en `docs/compatibilidad-cloudflare.md`). El desarrollador acepta diferir el cambio de región de Neon al Sprint 7
-- [ ] 10.5 CI completa en verde (`verificar`, `e2e` y `desplegar`) y `@humo` contra producción. Se verifica con la ejecución de la CI del último commit y con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo`
+- [x] 10.5 CI completa en verde (`verificar`, `e2e` y `desplegar`) y `@humo` contra producción. Se verifica con la ejecución de la CI del último commit y con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo`
 
 ## 11. Documentación
 

@@ -26,6 +26,8 @@ test('@humo el filtro por categoría deja solo esa categoría', async ({ page })
 
 test('@humo el filtro por precio respeta el rango', async ({ page }) => {
   await page.goto('/catalogo?precioMin=100&precioMax=300');
+  // Si la precarga del servidor tarda, los productos llegan desde el navegador.
+  await expect(page.getByRole('article').first()).toBeVisible();
   const precios = await page.getByRole('article').getByText(/^S\/ /).allTextContents();
   expect(precios.length).toBeGreaterThan(0);
   for (const p of precios) {

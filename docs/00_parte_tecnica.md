@@ -268,6 +268,7 @@ Plan de recorte si el tiempo se acorta: mantener siempre concurrencia (Sprint 3)
 ### Deuda técnica registrada (Sprint 1.5)
 - **`productos.marca` admite nulos** para no romper la migración sobre datos existentes. La API la exige al crear y la semilla la completa; cuando todos los productos la tengan, se puede pasar a `NOT NULL`.
 - **Región de Neon () lejos de los Workers (São Paulo)**: cada consulta suma ~150 ms y deja el rendimiento de Lighthouse móvil en 71–79 (objetivo 80). Decisión del desarrollador (Sprint 1.5): revisar la región en el Sprint 7; la opción es AWS .
+- **Región de Neon (`us-east-2`) lejos de los Workers (São Paulo):** cada consulta suma ~150 ms y deja el rendimiento de Lighthouse móvil en 71–79 (objetivo 80). Decisión del desarrollador (Sprint 1.5): revisar la región en el Sprint 7; la opción es AWS `sa-east-1`.
 - **Las imágenes las sirve el Worker de la API** (`GET /productos/:id/imagen/:archivo`) con caché inmutable del navegador. Si el consumo de peticiones del plan gratuito aprieta, se agrega `caches.default` o un dominio público para el bucket.
 
 ### Criterio de trazabilidad
