@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type FormEvent, type ReactNode, Suspense, useEffect, useState } from 'react';
 import { CATEGORIAS, NOMBRES_CATEGORIA } from '@/lib/atributos';
 import { ICONO_CATEGORIA } from '@/lib/iconos-categoria';
+import { formatoContador } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -104,7 +105,7 @@ export function BotonCarrito({ cantidad }: { cantidad: number }) {
           aria-hidden="true"
           className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-on-color"
         >
-          {cantidad > 9 ? '9+' : cantidad}
+          {formatoContador(cantidad)}
         </span>
       )}
     </Link>

@@ -29,4 +29,28 @@ export async function reservaActiva(): Promise<VistaReserva | null> {
   }
 }
 
+export interface DatosTarjeta {
+  numero: string;
+  vencimiento: string;
+  cvv: string;
+  titular: string;
+}
+
+export interface OrdenConfirmada {
+  id: string;
+  reservaId: string;
+  total: string;
+  comprobante: string;
+  comprobanteId: string;
+  creadaEn: string;
+}
+
+/** Pago simulado de la reserva (spec pagos). La clave se conserva entre reintentos de red. */
+export const pagar = (reservaId: string, tarjeta: DatosTarjeta, clave: string) =>
+  api<OrdenConfirmada>('/pagos/confirmar', {
+    metodo: 'POST',
+    cuerpo: { reservaId, tarjeta },
+    encabezados: { 'Idempotency-Key': clave },
+  });
+
 export const cancelarReserva = (id: string) => api<void>(`/reservas/${id}`, { metodo: 'DELETE' });

@@ -3,7 +3,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { CLAVE_CARRITO, type VistaCarrito } from '@/lib/carrito';
-import { cambiarCantidad, cancelarReserva, quitarItem, reservaActiva, reservar } from '../api';
+import { CLAVE_NOTIFICACIONES } from '@/lib/notificaciones';
+import {
+  cambiarCantidad,
+  cancelarReserva,
+  type DatosTarjeta,
+  pagar,
+  quitarItem,
+  reservaActiva,
+  reservar,
+} from '../api';
 
 const CLAVE_RESERVA = ['reserva', 'activa'] as const;
 
@@ -29,8 +38,26 @@ export function useReservar() {
   return useMutation({
     mutationFn: reservar,
     onSuccess: (r) => cliente.setQueryData(CLAVE_RESERVA, r),
-    // El disponible cambió: el carrito vuelve a pedir sus marcas de stock.
-    onSettled: () => cliente.invalidateQueries({ queryKey: CLAVE_CARRITO }),
+    // El disponible cambió: el carrito vuelve a pedir sus marcas de stock. Si faltó un
+    // producto hay un aviso nuevo en la campana (spec notificaciones).
+    onSettled: () => {
+      void cliente.invalidateQueries({ queryKey: CLAVE_CARRITO });
+      void cliente.invalidateQueries({ queryKey: CLAVE_NOTIFICACIONES });
+    },
+  });
+}
+
+/** Pago de la reserva activa (spec pagos). Aprobado: sin reserva, carrito vacío y aviso. */
+export function usePagar() {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { reservaId: string; tarjeta: DatosTarjeta; clave: string }) =>
+      pagar(v.reservaId, v.tarjeta, v.clave),
+    onSuccess: () => {
+      cliente.setQueryData(CLAVE_RESERVA, null);
+      void cliente.invalidateQueries({ queryKey: CLAVE_CARRITO });
+      void cliente.invalidateQueries({ queryKey: CLAVE_NOTIFICACIONES });
+    },
   });
 }
 

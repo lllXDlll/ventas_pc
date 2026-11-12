@@ -4,6 +4,7 @@ import { Footer, Header, TopBar } from '@/components/layout/shell';
 import { CuentaCabecera } from '@/features/auth/contenedores/cuenta';
 import { CarritoCabecera } from '@/features/carrito/contenedores/carrito';
 import { MegaMenuContenedor } from '@/features/catalogo/contenedores/inicio';
+import { NotificacionesCabecera } from '@/features/notificaciones/contenedores/campana';
 import '@/styles/globals.css';
 import { Providers } from './providers';
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             cuenta={<CuentaCabecera />}
             megaMenu={<MegaMenuContenedor />}
             carrito={<CarritoCabecera />}
+            notificaciones={<NotificacionesCabecera />}
           />
           <main className="flex flex-1 flex-col">{children}</main>
           <Footer />

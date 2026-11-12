@@ -17,3 +17,14 @@ export function formatoStock(disponible: number): { texto: string; nivel: NivelS
   if (disponible <= 5) return { texto: `Últimas ${disponible} unidades`, nivel: 'ultimas' };
   return { texto: 'En stock', nivel: 'en-stock' };
 }
+
+const FECHA = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
+const FECHA_CORTA = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' });
+
+/** Fecha y hora local: "12 nov 2026, 10:30". `corta` omite la hora. */
+export function formatoFecha(iso: string, corta = false): string {
+  return (corta ? FECHA_CORTA : FECHA).format(new Date(iso));
+}
+
+/** Contador de una insignia: "9+" a partir de 10. */
+export const formatoContador = (n: number) => (n > 9 ? '9+' : String(n));

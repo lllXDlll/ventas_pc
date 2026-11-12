@@ -43,6 +43,8 @@ export interface OpcionesApi {
   cuerpo?: unknown;
   /** Se envía tal cual (por ejemplo, el binario de una imagen). */
   archivo?: Blob;
+  /** Encabezados adicionales (por ejemplo, Idempotency-Key del pago). */
+  encabezados?: Record<string, string>;
 }
 
 /**
@@ -51,7 +53,7 @@ export interface OpcionesApi {
  * tiene tiempo límite para que una API caída no cuelgue la página.
  */
 export async function api<T>(ruta: string, opciones: OpcionesApi = {}): Promise<T> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...opciones.encabezados };
   let body: BodyInit | undefined;
   if (opciones.archivo) {
     headers['content-type'] = opciones.archivo.type || 'application/octet-stream';

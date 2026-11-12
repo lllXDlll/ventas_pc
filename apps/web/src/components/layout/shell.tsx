@@ -24,7 +24,7 @@ export function Logo({ className }: { className?: string }) {
 
 export function TopBar() {
   return (
-    <div className="border-b border-border bg-surface text-xs text-text-muted">
+    <div className="border-b border-border bg-surface text-xs text-text-muted print:hidden">
       <p className="contenedor flex h-8 items-center justify-center gap-1 text-center">
         <Sparkles className="size-3.5 text-secondary-soft" strokeWidth={1.5} aria-hidden="true" />
         Arma tu PC con IA y valida compatibilidad al instante
@@ -57,19 +57,22 @@ export function QuickLinks({ className }: { className?: string }) {
   );
 }
 
-/** Cabecera fija: logo, buscador, cuenta y carrito; debajo, categorías y accesos. */
+/** Cabecera fija: logo, buscador, cuenta, notificaciones y carrito; debajo, categorías. */
 export function Header({
   cuenta,
   megaMenu,
   carrito,
+  notificaciones,
 }: {
   cuenta: ReactNode;
   megaMenu: ReactNode;
   /** Contador del carrito (contenedor de features/carrito). */
   carrito: ReactNode;
+  /** Campana de notificaciones (contenedor de features/notificaciones); vacía sin sesión. */
+  notificaciones?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur print:hidden">
       <div className="contenedor flex h-16 items-center gap-3">
         <MobileDrawer cuenta={cuenta} />
         <Logo className="shrink-0" />
@@ -77,6 +80,7 @@ export function Header({
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <div className="hidden md:flex">{cuenta}</div>
           <SearchBar movil />
+          {notificaciones}
           {carrito}
         </div>
       </div>
@@ -120,7 +124,7 @@ const COLUMNAS_PIE: { titulo: string; enlaces: { texto: string; href?: string }[
 
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-border bg-surface">
+    <footer className="mt-auto border-t border-border bg-surface print:hidden">
       <div className="contenedor grid gap-8 py-10 md:grid-cols-4">
         {COLUMNAS_PIE.map((col) => (
           <section key={col.titulo} className="flex flex-col gap-3">

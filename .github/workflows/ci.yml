@@ -65,6 +65,9 @@ jobs:
       - name: Pruebas unitarias y e2e en workerd
         run: pnpm --filter api test --reporter=default --reporter=github-actions
 
+      - name: Pruebas unitarias del frontend
+        run: pnpm --filter web test --reporter=default --reporter=github-actions
+
       - name: Migraciones en el Postgres de la CI
         run: pnpm --filter api migrate:deploy
 

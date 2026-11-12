@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ImagenProducto } from '@/components/producto/producto';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BotonProximamente } from '@/components/ui/proximamente';
 import type { ItemCarrito } from '@/lib/carrito';
 import { formatoPrecio } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -131,12 +130,12 @@ export function ListaCarrito({
   );
 }
 
-const mmss = (ms: number) => {
+export const mmss = (ms: number) => {
   const s = Math.ceil(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
-/** Reserva activa: cuenta regresiva, "Pagar" (Sprint 4) y cancelar. */
+/** Reserva activa: cuenta regresiva, "Pagar" (lleva a /pago, Sprint 4) y cancelar. */
 export function ReservaActiva({
   reserva,
   restanteMs,
@@ -178,7 +177,9 @@ export function ReservaActiva({
             </span>
           </p>
           <p className="text-xs text-text-muted">Total reservado: {formatoPrecio(reserva.total)}</p>
-          <BotonProximamente className="[&>button]:w-full">Pagar</BotonProximamente>
+          <Button asChild className="w-full">
+            <Link href="/pago">Pagar</Link>
+          </Button>
           <Button type="button" variante="fantasma" disabled={cancelando} onClick={onCancelar}>
             Cancelar reserva
           </Button>

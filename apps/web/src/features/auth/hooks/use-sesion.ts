@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorApi } from '@/lib/api-client';
+import { CLAVE_CARRITO } from '@/lib/carrito';
+import { CLAVE_NOTIFICACIONES } from '@/lib/notificaciones';
 import type { Usuario } from '@/lib/tipos';
 import { cerrarSesion, type Credenciales, iniciarSesion, usuarioActual } from '../api';
 
@@ -29,7 +31,12 @@ export function useIniciarSesion() {
   const cliente = useQueryClient();
   return useMutation({
     mutationFn: (c: Credenciales) => iniciarSesion(c),
-    onSuccess: (usuario) => cliente.setQueryData(CLAVE_SESION, usuario),
+    onSuccess: (usuario) => {
+      cliente.setQueryData(CLAVE_SESION, usuario);
+      // Lo leído sin sesión (null) se vuelve a pedir: contador del carrito y campana.
+      void cliente.invalidateQueries({ queryKey: CLAVE_CARRITO });
+      void cliente.invalidateQueries({ queryKey: CLAVE_NOTIFICACIONES });
+    },
   });
 }
 
@@ -39,6 +46,8 @@ export function useCerrarSesion() {
     mutationFn: cerrarSesion,
     onSettled: async () => {
       cliente.setQueryData(CLAVE_SESION, null);
+      cliente.setQueryData(CLAVE_NOTIFICACIONES, null);
+      cliente.setQueryData(CLAVE_CARRITO, null);
       await cliente.invalidateQueries({ queryKey: ['admin'] });
     },
   });

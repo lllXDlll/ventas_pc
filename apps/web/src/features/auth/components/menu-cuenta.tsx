@@ -1,4 +1,4 @@
-import { LayoutDashboard, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, LogOut, Receipt, User, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +39,17 @@ export function MenuCuenta({
           </Link>
         </Button>
       )}
+      <Button asChild variante="fantasma" tamano="sm">
+        <Link href="/cuenta/compras">
+          <Receipt strokeWidth={1.5} /> <span className="sr-only xl:not-sr-only">Mis compras</span>
+        </Link>
+      </Button>
+      <Button asChild variante="fantasma" tamano="sm">
+        <Link href="/cuenta/configuraciones">
+          <Wrench strokeWidth={1.5} />{' '}
+          <span className="sr-only xl:not-sr-only">Mis configuraciones</span>
+        </Link>
+      </Button>
       <span className="max-w-48 truncate text-sm text-text-muted" title={usuario.correo}>
         {usuario.correo}
       </span>
