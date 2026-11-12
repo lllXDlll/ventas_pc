@@ -9,6 +9,7 @@ import {
 import { env } from 'cloudflare:workers';
 import { CarritoService } from '../carrito/carrito.service';
 import { conPrisma } from '../datos/prisma';
+import { NotificacionesService, TIPO } from '../notificaciones/notificaciones.service';
 import { Prisma } from '../generated/prisma/client';
 import { DisponibleService } from './disponible.service';
 
@@ -95,7 +96,23 @@ export class ReservasService {
   constructor(
     private readonly carrito: CarritoService,
     private readonly disponible: DisponibleService,
+    private readonly notificaciones: NotificacionesService,
   ) {}
+
+  /**
+   * Aviso de producto agotado (spec notificaciones, HU-23), sin repetir uno igual sin leer.
+   * Si falla solo se pierde el aviso: la respuesta 409 de la reserva no cambia.
+   */
+  private async avisarAgotado(usuarioId: string, nombre: string, quedan: number): Promise<void> {
+    const mensaje = `Se agotó «${nombre}»: ${quedan === 1 ? 'queda 1 unidad' : `quedan ${quedan} unidades`}. Reemplázalo en tu carrito.`;
+    await this.notificaciones
+      .crearSiNoHay(usuarioId, TIPO.PRODUCTO_AGOTADO, mensaje)
+      .catch((e: unknown) =>
+        console.error(
+          JSON.stringify({ nivel: 'error', mensaje: 'no se creó el aviso', error: String(e) }),
+        ),
+      );
+  }
 
   async reservar(usuarioId: string): Promise<VistaReserva> {
     const items = await this.carrito.productos(usuarioId);
@@ -118,6 +135,7 @@ export class ReservasService {
         const producto = await conPrisma((p) =>
           p.producto.findFirst({ where: { id: r.productoId }, select: { nombre: true } }),
         );
+        await this.avisarAgotado(usuarioId, producto?.nombre ?? r.productoId, r.disponible);
         throw new ConflictException({
           codigo: 'SIN_STOCK',
           mensaje: `No hay stock suficiente de «${producto?.nombre ?? r.productoId}»: quedan ${r.disponible}.`,

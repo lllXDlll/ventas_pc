@@ -339,6 +339,11 @@ export async function prepararBaseDePruebas(
     await semillaCategorias(cliente);
     await semillaReglas(cliente);
     await semillaCatalogo(cliente);
+    // Las compras e2e (Sprint 4) descuentan el stock físico del catálogo de ejemplo: cada
+    // corrida empieza con el stock de la semilla. Solo en la base de pruebas, nunca en Neon.
+    for (const p of CATALOGO_EJEMPLO) {
+      await cliente.query('UPDATE stock SET cantidad = $2 WHERE producto_id = $1', [p.id, p.stock]);
+    }
     await semillaAdmin(cliente, admin.correo, admin.contrasena);
   } finally {
     await cliente.end();

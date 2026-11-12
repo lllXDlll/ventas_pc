@@ -140,6 +140,57 @@ export function conPrisma<T>(
   return enPeticion(() => fn(prismaDelIsolate()), undefined, cadena);
 }
 
+/** Adaptador fijo sobre la conexión de una petición, para un cliente de un solo uso. */
+class AdaptadorFijo {
+  readonly provider = 'postgres' as const;
+  readonly adapterName = '@prisma/adapter-pg';
+  constructor(private readonly base: AdaptadorPg) {}
+  queryRaw(consulta: Consulta) {
+    return this.base.queryRaw(consulta);
+  }
+  executeRaw(consulta: Consulta) {
+    return this.base.executeRaw(consulta);
+  }
+  executeScript(script: string) {
+    return this.base.executeScript(script);
+  }
+  startTransaction(nivel?: NivelAislamiento) {
+    return this.base.startTransaction(nivel);
+  }
+  getConnectionInfo() {
+    return { schemaName: undefined, supportsRelationJoins: true };
+  }
+  // La conexión es de la petición: la cierra enPeticion(), no este cliente.
+  async dispose() {}
+}
+
+export type Transaccion = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
+
+/**
+ * Transacción interactiva con un PrismaClient propio de la llamada (Sprint 4).
+ *
+ * Prisma agrupa las consultas de una transacción interactiva (`batchBy: itx-<id>`) y las
+ * despacha en un `process.nextTick` compartido por todo el cliente: con el cliente del
+ * isolate, la transacción de una petición podía ejecutarse en el contexto de otra que
+ * encoló primero, y al terminar esa otra workerd dejaba colgada la E/S de la primera
+ * (confirmaciones simultáneas de clientes distintos). Un cliente por transacción solo
+ * despacha consultas de esta petición; cuesta construir su compilador de consultas, lo
+ * que se acepta porque solo la confirmación de la compra lo usa.
+ */
+export function conTransaccion<T>(fn: (tx: Transaccion) => Promise<T>): Promise<T> {
+  const ejecutar = async () => {
+    const base = await conexionActual();
+    const fabricaFija = {
+      provider: 'postgres' as const,
+      adapterName: '@prisma/adapter-pg',
+      connect: async () => new AdaptadorFijo(base),
+    };
+    const propio = new PrismaClient({ adapter: fabricaFija as unknown as PrismaPg });
+    return propio.$transaction(fn);
+  };
+  return contexto.getStore() ? ejecutar() : enPeticion(ejecutar);
+}
+
 /** Solo para pruebas: si hay una conexión de petición activa y si ya se abrió. */
 export function estadoConexion(): { activa: boolean; abierta: boolean } {
   const conexion = contexto.getStore();

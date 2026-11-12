@@ -4,7 +4,10 @@ import { CarritoModule } from './carrito/carrito.module';
 import { CatalogoModule } from './catalogo/catalogo.module';
 import { CompatibilidadModule } from './compatibilidad/compatibilidad.module';
 import { ConfiguracionesModule } from './configuraciones/configuraciones.module';
+import { HistorialModule } from './historial/historial.module';
 import { HealthModule } from './health/health.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { PagosModule } from './pagos/pagos.module';
 import { PedidosModule } from './reservas/pedidos.module';
 import { ReservasModule } from './reservas/reservas.module';
 
@@ -18,6 +21,9 @@ import { ReservasModule } from './reservas/reservas.module';
     ConfiguracionesModule,
     CarritoModule,
     PedidosModule,
+    NotificacionesModule,
+    PagosModule,
+    HistorialModule,
   ],
 })
 export class AppModule {}

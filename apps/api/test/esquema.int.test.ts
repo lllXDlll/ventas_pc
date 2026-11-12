@@ -278,3 +278,63 @@ describe('productos: marca e imagen (Sprint 1.5)', () => {
     expect(rows).toEqual([{ nombre: 'Producto', marca: null, imagen_clave: null }]);
   });
 });
+
+describe('comprobantes: número correlativo (Sprint 4)', () => {
+  const MIGRACION = readdirSync(join(__dirname, '../prisma/migrations')).find((d) =>
+    d.endsWith('_comprobantes_correlativo'),
+  );
+  const sql = () =>
+    readFileSync(join(__dirname, '../prisma/migrations', MIGRACION ?? '', 'migration.sql'), 'utf8');
+
+  /** Orden con su comprobante en el formato del Sprint 3, con la fecha indicada. */
+  async function comprobanteViejo(fecha: string): Promise<string> {
+    const usuario = await crearUsuario();
+    const reserva = randomUUID();
+    await cliente.query(
+      `INSERT INTO reservas (id, usuario_id, estado, vence_en) VALUES ($1, $2, 'CONFIRMADA', now())`,
+      [reserva, usuario],
+    );
+    const orden = randomUUID();
+    await cliente.query(
+      `INSERT INTO ordenes (id, usuario_id, reserva_id, clave_idempotencia, total)
+       VALUES ($1, $2, $3, $4, 10)`,
+      [orden, usuario, reserva, `clave-${orden}`],
+    );
+    const id = randomUUID();
+    await cliente.query(
+      `INSERT INTO comprobantes (id, numero, orden_id, fecha, detalle) VALUES ($1, $2, $3, $4, '{}')`,
+      [id, `XD-20261112-${orden.slice(-6).toUpperCase()}`, orden, fecha],
+    );
+    return id;
+  }
+
+  // Estado previo a la migración: sin la secuencia y sin otros comprobantes.
+  beforeEach(async () => {
+    expect(MIGRACION).toBeDefined();
+    await cliente.query('DROP SEQUENCE comprobante_numero_seq');
+    await cliente.query('DELETE FROM comprobantes');
+  });
+
+  it('renumera los existentes por fecha y la secuencia sigue en el siguiente', async () => {
+    const c = await comprobanteViejo('2026-11-12T10:00:00Z');
+    const a = await comprobanteViejo('2026-11-10T10:00:00Z');
+    const b = await comprobanteViejo('2026-11-11T10:00:00Z');
+    await cliente.query(sql());
+    const { rows } = await cliente.query<{ id: string; numero: string }>(
+      'SELECT id, numero FROM comprobantes ORDER BY numero',
+    );
+    expect(rows).toEqual([
+      { id: a, numero: 'XD-000001' },
+      { id: b, numero: 'XD-000002' },
+      { id: c, numero: 'XD-000003' },
+    ]);
+    const { rows: s } = await cliente.query("SELECT nextval('comprobante_numero_seq')::int AS n");
+    expect(s[0].n).toBe(4);
+  });
+
+  it('en una base sin comprobantes empieza en 1', async () => {
+    await cliente.query(sql());
+    const { rows } = await cliente.query("SELECT nextval('comprobante_numero_seq')::int AS n");
+    expect(rows[0].n).toBe(1);
+  });
+});

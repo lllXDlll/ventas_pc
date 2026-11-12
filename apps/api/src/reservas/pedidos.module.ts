@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CarritoModule } from '../carrito/carrito.module';
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
 import { ConfirmacionService } from './confirmacion.service';
 import { ReconciliacionService } from './reconciliacion.service';
 import { ReservasController } from './reservas.controller';
@@ -10,7 +11,7 @@ import { ReservasService } from './reservas.service';
  * solo el puerto DisponibleService) para no formar un ciclo con el carrito.
  */
 @Module({
-  imports: [CarritoModule],
+  imports: [CarritoModule, NotificacionesModule],
   controllers: [ReservasController],
   providers: [ReservasService, ConfirmacionService, ReconciliacionService],
   exports: [ReservasService, ConfirmacionService, ReconciliacionService],

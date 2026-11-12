@@ -7,6 +7,7 @@ import {
 import type { ItemDto } from '../compatibilidad/dto';
 import type { Rechazo } from '../compatibilidad/motor/tipos';
 import { conPrisma } from '../datos/prisma';
+import { esUuid } from '../comun/uuid';
 import { Prisma } from '../generated/prisma/client';
 
 export interface Faltante {
@@ -40,7 +41,6 @@ export interface ResumenConfiguracion {
 
 const NO_EXISTE = { codigo: 'NO_ENCONTRADO', mensaje: 'La configuración no existe.' };
 const POR_PAGINA = 20;
-const esUuid = (id: string) => /^[0-9a-f-]{36}$/i.test(id);
 
 function vista(
   base: { id: string; origen: string; estado: string; creadaEn: Date },
@@ -141,6 +141,23 @@ export class ConfiguracionesService {
       },
     );
     return vista(fila, ev);
+  }
+
+  /**
+   * Revalidación desde el historial (spec historial, HU-26): recalcula con las reglas y el
+   * disponible vigentes y, a diferencia de `detalle`, guarda el estado resultante.
+   */
+  async revalidar(usuarioId: string, id: string): Promise<VistaConfiguracion> {
+    const fila = await this.propia(usuarioId, id);
+    const ev = await this.compatibilidad.evaluar(
+      fila.items.map((i) => ({ ...i })),
+      { estricto: false },
+    );
+    const estado = ev.compatible ? 'VALIDA' : 'INVALIDA';
+    if (estado !== fila.estado) {
+      await conPrisma((p) => p.configuracion.update({ where: { id }, data: { estado } }));
+    }
+    return vista({ ...fila, estado }, ev);
   }
 
   async listar(

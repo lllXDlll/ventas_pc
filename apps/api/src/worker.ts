@@ -12,7 +12,11 @@ import { enPeticion, precalentarPrisma } from './datos/prisma';
 import { despachar, tareasPorDefecto } from './programadas/despacho';
 import { limpiarSesiones } from './programadas/limpieza-sesiones';
 import { borrarSesionesCaducadas } from './programadas/limpieza-sesiones.bd';
-import { ConfirmacionService, type OrdenConfirmada } from './reservas/confirmacion.service';
+import {
+  ConfirmacionService,
+  type DatosPago,
+  type OrdenConfirmada,
+} from './reservas/confirmacion.service';
 import { ReconciliacionService } from './reservas/reconciliacion.service';
 import { ReservasService } from './reservas/reservas.service';
 
@@ -123,11 +127,16 @@ export default class Api extends WorkerEntrypoint<Env> {
     this.ctx.waitUntil(despachar(controller.cron, tareasProduccion).then(() => undefined));
   }
 
-  async confirmar(usuarioId: string, reservaId: string, clave: string): Promise<OrdenConfirmada> {
+  async confirmar(
+    usuarioId: string,
+    reservaId: string,
+    clave: string,
+    pago?: DatosPago,
+  ): Promise<OrdenConfirmada> {
     const app = await asegurarApp();
     try {
       return await enPeticion(() =>
-        app.get(ConfirmacionService).confirmar(usuarioId, reservaId, clave),
+        app.get(ConfirmacionService).confirmar(usuarioId, reservaId, clave, pago),
       );
     } catch (error) {
       // Por RPC solo viaja el mensaje: se envía el { codigo, mensaje } de la excepción.

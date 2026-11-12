@@ -40,6 +40,9 @@
     "HEALTH_TIMEOUT_MS": "3000",
     // Vencimiento de las reservas en minutos (spec reservas; admite decimales en pruebas).
     "RESERVA_TTL_MIN": "10",
+    // Pago simulado (spec pagos): APROBAR o RECHAZAR fuerzan el resultado en pruebas; vacío,
+    // decide la tarjeta de prueba.
+    "PAGO_SIMULADO_FORZAR": "",
     // Límites de peticiones (spec limite-peticiones; sección 7 de la parte técnica).
     "LIMITE_REGISTRO_MAX": "5",
     "LIMITE_REGISTRO_VENTANA_MIN": "60",

@@ -7,5 +7,6 @@ import { ConfiguracionesService } from './configuraciones.service';
   imports: [CompatibilidadModule],
   controllers: [ConfiguracionesController],
   providers: [ConfiguracionesService],
+  exports: [ConfiguracionesService],
 })
 export class ConfiguracionesModule {}
