@@ -60,8 +60,8 @@
   - en `docs/sprint_02_motor_reglas.md`: una nota con las tres decisiones y el endpoint `GET /configuraciones`.
 
   Se verifica con una lectura sin contradicciones con design.md.
-- [ ] 5.3 Ejecutar `semilla:catalogo` contra Neon para completar los atributos nuevos (lo hace el desarrollador). Se verifica con `GET https://api.xdtech.store/productos/<id de la placa MSI B650>`, que muestra `velocidadRamMaxMhz`.
-- [ ] 5.4 CI completa en verde y `@humo` contra producción. Se verifica con la ejecución de la CI del último commit y con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo`.
+- [x] 5.3 Ejecutar `semilla:catalogo` contra Neon para completar los atributos nuevos (lo hace el desarrollador). Se verifica con `GET https://api.xdtech.store/productos/<id de la placa MSI B650>`, que muestra `velocidadRamMaxMhz`.
+- [x] 5.4 CI completa en verde y `@humo` contra producción. Se verifica con la ejecución de la CI del último commit y con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo`.
 
 ## Workflow follow-up
 
