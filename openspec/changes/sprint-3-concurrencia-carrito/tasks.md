@@ -76,7 +76,7 @@
   - en `docs/sprint_03_concurrencia_carrito.md`: una nota con las decisiones.
 
   Se verifica con una lectura sin contradicciones con design.md.
-- [ ] 5.4 CI completa en verde y `@humo` contra producción. Se verifica con la ejecución de la CI del último commit y con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo`.
+- [x] 5.4 CI completa en verde y `@humo` contra producción. Se verifica con la ejecución de la CI del último commit y con `E2E_URL=https://xdtech.store pnpm test:e2e --grep @humo`.
 
 ## Workflow follow-up
 
