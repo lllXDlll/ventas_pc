@@ -129,15 +129,23 @@ test.describe('menú lateral móvil', () => {
 });
 
 test('@humo los accesos de sprints futuros no hacen peticiones', async ({ page }) => {
-  // Desde el Sprint 3 el carrito funciona: quedan el asistente (Armador IA) y las ofertas.
+  // Desde el Sprint 5 el asistente funciona: solo quedan las ofertas.
   await page.goto('/');
   await page.waitForLoadState('networkidle');
+  const navegacion = page.getByRole('navigation', { name: 'Navegación principal' });
+  await expect(navegacion.getByRole('link', { name: 'Armador IA' })).toHaveAttribute(
+    'href',
+    '/asistente',
+  );
+  await expect(page.getByRole('link', { name: 'Arma tu PC con IA' })).toHaveAttribute(
+    'href',
+    '/asistente',
+  );
   const peticiones: string[] = [];
   page.on('request', (r) => peticiones.push(r.url()));
   // aria-disabled: Playwright no hace clic en elementos deshabilitados, se despacha el evento.
-  await page.getByRole('button', { name: 'Armador IA' }).dispatchEvent('click');
-  await expect(page.getByText('Disponible pronto').first()).toBeVisible();
   await page.getByRole('button', { name: 'Ofertas' }).dispatchEvent('click');
+  await expect(page.getByText('Disponible pronto').first()).toBeVisible();
   await page.waitForTimeout(300);
   expect(peticiones).toEqual([]);
 });

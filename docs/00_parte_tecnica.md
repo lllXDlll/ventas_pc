@@ -19,7 +19,7 @@ Fuera de alcance: pasarelas de pago reales, logística de envío, garantías y s
 | Backend | NestJS (TypeScript, adaptador Express) sobre Cloudflare Workers | **Validado en el Sprint 0** (prueba 1), con NestJS y Prisma inicializados en el ámbito global del Worker |
 | Base de datos | PostgreSQL en Neon + Prisma 7 con `@prisma/adapter-pg`, por Cloudflare Hyperdrive (caché de consultas desactivado) | **Fijada y validada** (prueba 3) |
 | Caché / concurrencia | Durable Object `Inventario` con SQLite en Cloudflare (opción B). Upstash queda solo como respaldo no implementado | **Decidido en el Sprint 0** (prueba 4) |
-| IA | API de un LLM (Claude) tras un adaptador intercambiable | Fijada |
+| IA | Claude Opus 5.5 (`claude-opus-5-5`) por AI Gateway de Cloudflare, tras el adaptador intercambiable `ProveedorIA` | Fijada (Sprint 5) |
 | Herramientas | Node.js 24 en local y en la CI (`.nvmrc`, `engines`), pnpm workspaces, Vitest, TypeScript estricto | Fijadas en el Sprint 0 |
 
 ### 2.0 Principio de validación de compatibilidad
@@ -220,11 +220,13 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 | Margen de potencia de la fuente | 20 % | Parámetro `margenPorcentaje` de la regla `POTENCIA` en `reglas_compatibilidad` |
 | Consumo base (placa, RAM, almacenamiento) | 0 W | Parámetro `consumoBaseW` de la regla `POTENCIA` |
 | Escenario de carga | 300 usuarios virtuales, componente con 5 unidades | Script k6 |
-| Timeout de la API de IA | Configurable | Variable de entorno |
+| Timeout de la API de IA | 20 s por intento (un reintento como máximo) | `IA_TIMEOUT_MS` |
+| Interruptor de la IA | Encendida | `IA_HABILITADA` (`"false"`: todo sale del respaldo, sin llamadas) |
+| Proveedor de IA | Claude por AI Gateway | `IA_PROVEEDOR` (`anthropic`; `simulado` en pruebas, CI y `wrangler dev`) y `IA_MODELO` |
 | Duración de la sesión | 7 días | Variable de entorno |
 | Límite de registro | 5 registros por hora por IP | `LIMITE_REGISTRO_MAX`, `LIMITE_REGISTRO_VENTANA_MIN` |
 | Límite de inicio de sesión | 5 intentos fallidos por 15 min por correo; 50 por 15 min por IP | `LIMITE_LOGIN_CORREO_MAX`, `LIMITE_LOGIN_IP_MAX`, `LIMITE_LOGIN_VENTANA_MIN` |
-| Límite del asistente | 10 consultas por 24 h por usuario | Variable de entorno |
+| Límite del asistente | 10 consultas por 24 h por usuario; 20 peticiones por hora en el gateway | `ASISTENTE_LIMITE_24H`; límite configurado en el panel de AI Gateway |
 | Reconciliación periódica | cada 5 min | Cron Trigger en `wrangler.jsonc` |
 | Pago simulado | `4242 4242 4242 4242` aprueba, `4000 0000 0000 0002` rechaza; cualquier otra tarjeta válida (Luhn) aprueba | `PAGO_SIMULADO_FORZAR` (`APROBAR` o `RECHAZAR`; vacía en producción) |
 | Número de comprobante | `XD-000001`, correlativo global | Secuencia `comprobante_numero_seq` (migración `comprobantes_correlativo`) |
@@ -278,6 +280,22 @@ Plan de recorte si el tiempo se acorta: mantener siempre concurrencia (Sprint 3)
 - **`productos.marca` admite nulos** para no romper la migración sobre datos existentes. La API la exige al crear y la semilla la completa; cuando todos los productos la tengan, se puede pasar a `NOT NULL`.
 - **Región de Neon (`us-east-2`) lejos de los Workers (São Paulo):** cada consulta suma ~150 ms y deja el rendimiento de Lighthouse móvil en 71–79 (objetivo 80). Decisión del desarrollador (Sprint 1.5): revisar la región en el Sprint 7; la opción es AWS `sa-east-1`.
 - **Las imágenes las sirve el Worker de la API** (`GET /productos/:id/imagen/:archivo`) con caché inmutable del navegador. Si el consumo de peticiones del plan gratuito aprieta, se agrega `caches.default` o un dominio público para el bucket.
+
+### Asistente de IA (Sprint 5)
+- **Flujo implementado** (`apps/api/src/asistente/`):
+  1. lectura del catálogo activo con disponible y de las reglas (1 consulta y 1 llamada al Durable Object);
+  2. presupuesto mínimo (si no alcanza, 422 sin gastar cupo);
+  3. reserva de la consulta con bloqueo por usuario;
+  4. preselección de hasta 5 candidatos por categoría con alias `C1…`;
+  5. Claude con salida estructurada (zod) y un reintento con los motivos;
+  6. respaldo determinístico por perfil de uso;
+  7. guardado con origen `IA` y registro en `uso_asistente` (latencia, respaldo, intentos, motivo y tokens).
+- **Llamadas por AI Gateway `xdtech-ia`:** la clave de Anthropic está guardada en el gateway. El Worker solo tiene la URL del gateway (`IA_GATEWAY_URL`) y su token (`CF_AIG_TOKEN`), ambos secretos. Se usa el SDK oficial con `maxRetries: 0`, esfuerzo `low` y `max_tokens` 4000.
+- **Cómo apagar la IA:** `IA_HABILITADA="false"`, revocar el token o quitar la clave en el panel del gateway, o dejar que corte su límite de 20 por hora. En todos los casos el cliente recibe la configuración del respaldo, nunca un error.
+- **Sin `fallbacks` del servidor:** no está verificado que AI Gateway reenvíe el encabezado beta `server-side-fallback`. Un rechazo del modelo (`stop_reason: refusal`) cae al respaldo determinístico.
+- **Costo:** unos US$0,05 por consulta con Opus 5.5 (el doble con reintento). Lo acotan el límite por usuario y el del gateway.
+- **Tamaño del Worker:** con `@anthropic-ai/sdk` y `zod`, el bundle pasó de 1.949 a 2.294 KiB comprimido (9.390 KiB sin comprimir). Queda bajo los 3 MB comprimidos del plan gratuito, con ~650 KiB de margen.
+- **Sin configurar** (local o sin secretos): el adaptador no llama a la red y el asistente responde con el respaldo (`IA_SIN_CONFIGURAR`).
 
 ### Pago simulado y comprobantes (Sprint 4)
 - **No hay pasarela real** (fuera de alcance): el pago simulado decide por la tarjeta de prueba. Los datos de tarjeta no se guardan ni se registran; solo los 4 últimos dígitos quedan en el comprobante.

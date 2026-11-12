@@ -23,6 +23,9 @@ const variablesApi = [
   'LIMITE_REGISTRO_MAX:100000',
   'LIMITE_LOGIN_CORREO_MAX:100000',
   'LIMITE_LOGIN_IP_MAX:100000',
+  // Asistente (Sprint 5): proveedor simulado, sin red ni costo, y un límite bajo para probarlo.
+  'IA_PROVEEDOR:simulado',
+  'ASISTENTE_LIMITE_24H:3',
 ]
   .map((v) => `--var "${v}"`)
   .join(' ');
