@@ -173,6 +173,11 @@ Se conserva como referencia por si la opción B dejara de servir. No se implemen
 - Un único Durable Object `Inventario` para todo el catálogo, de modo que la reserva de varios productos sea atómica (un Durable Object procesa sus peticiones una por una). Cada reserva pasa por ese único objeto: es el posible cuello de botella a medir en el Sprint 0.
 - Almacenamiento SQLite del objeto: `disponible(producto_id, cantidad)`, `reservas(id, vence_en)` y `reserva_items(reserva_id, producto_id, cantidad)`.
 - Métodos: `reservar(items, vencimiento)`, `expirar()`, `cerrar(reservaId)`, `reconstruir(productoId, cantidad)` y `consultar(productoId)`. La expiración la invocan el Cron Trigger y cada `reservar`.
+- Métodos del Sprint 3: `consultarVarios(ids)` (catálogo, 1 subrequest por página), `reconstruirVarios(items)` (reconstrucción perezosa en lote, sin sobrescribir), `liberar(reservaId)` (cancelar, reemplazar la reserva del cliente o compensar un fallo de Postgres), `reconciliar(fisicos)` y `ajustar(productoId, delta)` (cambio de stock desde el panel).
+- **La reconciliación cuenta las reservas dentro del objeto, no desde Postgres:** disponible = físico − reservas vigentes del propio objeto. Así una reserva hecha en el objeto y aún no registrada en Postgres (en vuelo) no se pisa.
+- **Margen de confirmación:** una reserva que vence en menos de 30 s ya no se confirma. Así el objeto nunca devuelve al disponible algo que Postgres está vendiendo. El `UPDATE` condicional (`cantidad >= n AND version = v`) impide igualmente que el stock físico quede negativo.
+- Una reserva activa por cliente: reservar de nuevo libera la anterior. El RPC `confirmar` del Worker (sin ruta HTTP) lo usa el pago del Sprint 4.
+- **Prisma y concurrencia:** no se usa `findUnique` en la API. Prisma agrupa los `findUnique` simultáneos en una sola consulta y, con un `PrismaClient` por isolate, juntaba peticiones distintas sobre la conexión de una sola; workerd cancelaba las demás ("code had hung"). Se usa `findFirst`, y una regla de ESLint lo impide.
 - Cada reserva escribe 2 + 2·N filas para N productos (4 con un producto, con tablas `WITHOUT ROWID`); el límite gratuito es de 100.000 filas escritas al día.
 - Medido en producción en el Sprint 0: 300 reservas concurrentes sobre 5 unidades dan exactamente 5; espera en el objeto p50 132 ms y p95 383 ms; 1 subrequest por reserva.
 - Sin cuota mensual de comandos, y una pieza externa menos. Las pruebas locales corren en el Durable Object local de `wrangler dev`.
@@ -210,7 +215,7 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 
 | Parámetro | Valor | Dónde se configura |
 |---|---|---|
-| TTL de reservas | 10 min | Variable de entorno (usar valor corto en pruebas) |
+| TTL de reservas | 10 min | `RESERVA_TTL_MIN` (admite decimales: las pruebas usan 0.05 = 3 s) |
 | Margen de potencia de la fuente | 20 % | Parámetro `margenPorcentaje` de la regla `POTENCIA` en `reglas_compatibilidad` |
 | Consumo base (placa, RAM, almacenamiento) | 0 W | Parámetro `consumoBaseW` de la regla `POTENCIA` |
 | Escenario de carga | 300 usuarios virtuales, componente con 5 unidades | Script k6 |

@@ -7,6 +7,19 @@
 
 **Almacén de disponibilidad:** el Durable Object `Inventario` con SQLite (opción B, elegida en el Sprint 0; sección 5.2 de `00_parte_tecnica.md`), con sus métodos `reservar`, `expirar`, `cerrar`, `reconstruir` y `consultar`. El prototipo del Sprint 0 ya implementa `reservar` (todo o nada), `expirar`, `reconstruir` y `consultar`, con pruebas en workerd. Todo el acceso pasa por el puerto `DisponibleService`.
 
+## Decisiones tomadas al planificar e implementar (2026-11-11)
+
+Detalle en `openspec/changes/sprint-3-concurrencia-carrito/`.
+
+| Tema | Decisión |
+|---|---|
+| Qué se reserva | Todo el carrito, con las configuraciones expandidas a sus productos. **Una reserva activa por cliente**: reservar de nuevo libera la anterior |
+| Tras reservar | Cuenta regresiva, "Pagar" como "Disponible pronto" (Sprint 4) y "Cancelar reserva" (`DELETE /reservas/:id`), que devuelve el stock en el momento |
+| Revalidación | La compatibilidad de una configuración se revalida al agregarla al carrito, no al reservar |
+| Confirmación | Servicio expuesto por RPC interno del Worker (sin ruta HTTP), para que lo use el pago del Sprint 4. Margen de 30 s antes del vencimiento |
+| Reconciliación | Cuenta las reservas dentro del Durable Object para no pisar una reserva en vuelo |
+| Prueba k6 | `tests/k6/preparar.mjs` inserta las sesiones directamente en la base, por el límite de 5 registros por hora por IP. En local, Postgres necesita `max_connections=400` (docker-compose) porque sin Hyperdrive cada petición abre su conexión |
+
 ## HU-16 Agregar al carrito
 **Como** cliente, **quiero** agregar al carrito una configuración o productos sueltos, **para** comprarlos juntos.
 

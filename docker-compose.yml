@@ -4,6 +4,9 @@
 services:
   postgres:
     image: postgres:17
+    # En local no hay Hyperdrive que agrupe conexiones: cada petición de wrangler dev abre la
+    # suya. 400 cubre la prueba de carga de 300 clientes (HU-37a).
+    command: ['postgres', '-c', 'max_connections=400']
     environment:
       POSTGRES_USER: xdtech
       POSTGRES_PASSWORD: xdtech

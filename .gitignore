@@ -39,3 +39,6 @@ Thumbs.db
 playwright-report/
 test-results/
 blob-report/
+
+# Datos de la corrida de k6 (sesiones de prueba)
+tests/k6/datos.json

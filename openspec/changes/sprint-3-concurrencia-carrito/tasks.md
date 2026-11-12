@@ -69,9 +69,9 @@
 
 ## 5. Prueba de carga y cierre
 
-- [ ] 5.1 `tests/k6/preparar.mjs`, `tests/k6/reserva_concurrente.js` y `tests/k6/verificar.mjs` (design D11), con `datos.json` en `.gitignore`. Se verifica con una corrida local contra `wrangler dev`: 300 VUs, exactamente 5 respuestas 201, y `verificar` confirma Σ reservado ≤ stock y stock físico ≥ 0.
+- [x] 5.1 `tests/k6/preparar.mjs`, `tests/k6/reserva_concurrente.js` y `tests/k6/verificar.mjs` (design D11), con `datos.json` en `.gitignore`. Se verifica con una corrida local contra `wrangler dev`: 300 VUs, exactamente 5 respuestas 201, y `verificar` confirma Σ reservado ≤ stock y stock físico ≥ 0.
 - [ ] 5.2 Una corrida de k6 contra `*.workers.dev` en producción, con preparación y limpieza en Neon, y medición con `wrangler tail` de la CPU de `POST /reservas`. Se registran la latencia (p50 y p95), las exitosas y la CPU en `docs/compatibilidad-cloudflare.md`. Se verifica con la sección agregada y los datos de prueba borrados.
-- [ ] 5.3 Documentación:
+- [x] 5.3 Documentación:
   - en `docs/00_parte_tecnica.md`: la sección 5.2 con los métodos nuevos del objeto, la reconciliación dentro del objeto y el margen de 30 s, y `RESERVA_TTL_MIN` en la sección 7;
   - en `docs/sprint_03_concurrencia_carrito.md`: una nota con las decisiones.
 
