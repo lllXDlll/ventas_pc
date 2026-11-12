@@ -29,7 +29,7 @@
   - rechazo `SOCKET` con su mensaje;
   - 400 por un equipo armado, un id inexistente, un producto inactivo, dos procesadores y una cantidad fuera de rango.
 - [x] 3.2 `POST`, `PATCH`, `GET /:id` y `GET` de `/configuraciones` con sesión, dueño, estado guardado, rechazos recalculados, `agregable` y `faltantes` (design D5). Se verifica con pruebas de integración de cada escenario de la spec `configuraciones`, incluida la lista paginada y el producto agotado.
-- [ ] 3.3 Medir con `wrangler tail` en producción la CPU de `POST /compatibilidad/validar` y de `GET /configuraciones/:id`, y registrarla en `docs/compatibilidad-cloudflare.md`. Se verifica con la tabla de medianas.
+- [x] 3.3 Medir con `wrangler tail` en producción la CPU de `POST /compatibilidad/validar` y de `GET /configuraciones/:id`, y registrarla en `docs/compatibilidad-cloudflare.md`. Se verifica con la tabla de medianas.
 
 ## 4. Frontend: armador
 

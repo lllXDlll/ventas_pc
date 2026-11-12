@@ -151,3 +151,15 @@ CPU por petición en producción (`wrangler tail`), justo después del despliegu
 **Pendiente (decisión del desarrollador).**
 - **Mover Neon a una región cercana a los visitantes** (AWS `sa-east-1`, São Paulo). Es la corrección de fondo: bajaría cada viaje de ~150 ms a unos pocos milisegundos. Exige crear el proyecto en esa región, migrar los datos y actualizar Hyperdrive y el secreto `NEON_DIRECT_URL`.
 - **Una caché corta en el borde** para el catálogo público **no se aplica**: contradice el requisito "los cambios se ven en la siguiente consulta" (spec `catalogo`).
+
+## Mediciones del Sprint 2 (tarea 3.3, 2026-11-11)
+
+CPU por petición en producción (`wrangler tail`), justo después del despliegue del Sprint 2. Se usaron 10 peticiones por ruta, con una configuración de 5 productos (procesador, placa, RAM, fuente y gabinete) de una cuenta de prueba (`medicion-cpu-s2-…@xdtech.test`).
+
+| Ruta | Mediana (rango) | Trabajo por petición |
+|---|---|---|
+| `POST /compatibilidad/validar` | 12 ms (6–134; los valores altos son las primeras peticiones, en frío) | 2 consultas (productos y reglas) y el motor puro |
+| `GET /configuraciones/:id` | 21 ms (7–74) | sesión, configuración con sus ítems, productos y reglas (4 consultas), y el motor |
+
+- **Validar cuesta lo mismo que listar el catálogo** (14 ms de mediana en el Sprint 1.5). El armador valida con 300 ms de antirrebote y caché por combinación de productos, así que no se valida en cada clic.
+- **Limpieza:** `DELETE FROM usuarios WHERE correo LIKE 'medicion-cpu-%@xdtech.test';` borra la cuenta, y sus configuraciones se borran en cascada.
