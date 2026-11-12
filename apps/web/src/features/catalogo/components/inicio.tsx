@@ -1,7 +1,6 @@
 import { BadgeCheck, MapPin, PackageCheck, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BotonProximamente } from '@/components/ui/proximamente';
 import { CATEGORIAS, NOMBRES_CATEGORIA } from '@/lib/atributos';
 import { ICONO_CATEGORIA } from '@/lib/iconos-categoria';
 
@@ -24,9 +23,11 @@ export function Hero() {
           de llegar a tu carrito.
         </p>
         <div className="flex flex-wrap gap-3">
-          <BotonProximamente variante="degradado" tamano="lg">
-            <Sparkles strokeWidth={1.5} /> Arma tu PC con IA
-          </BotonProximamente>
+          <Button asChild variante="degradado" tamano="lg">
+            <Link href="/asistente">
+              <Sparkles strokeWidth={1.5} /> Arma tu PC con IA
+            </Link>
+          </Button>
           <Button asChild variante="contorno" tamano="lg">
             <Link href="/catalogo">Ver catálogo</Link>
           </Button>

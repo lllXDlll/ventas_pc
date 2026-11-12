@@ -15,6 +15,7 @@ import {
   type Elegido,
   ListaRechazos,
   PasoCategoria,
+  InsigniaAsistente,
   ResumenArmado,
 } from '../components/armador';
 import {
@@ -62,6 +63,8 @@ export function ArmadorContenedor() {
 
   // Retomar una configuración guardada: si la URL solo trae config=, se cargan sus productos.
   const guardada = useConfiguracion(items.length === 0 ? config : null);
+  // Origen, presupuesto y uso de la configuración abierta (comparte caché con la anterior).
+  const abierta = useConfiguracion(config);
   useEffect(() => {
     if (guardada.data && items.length === 0) {
       navegar(
@@ -201,6 +204,11 @@ export function ArmadorContenedor() {
           ))}
         </div>
         <ResumenArmado
+          origen={
+            abierta.data?.origen === 'IA' ? (
+              <InsigniaAsistente presupuesto={abierta.data.presupuesto} uso={abierta.data.uso} />
+            ) : null
+          }
           elegidos={elegidos}
           total={total}
           compatibilidad={

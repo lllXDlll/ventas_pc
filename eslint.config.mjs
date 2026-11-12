@@ -13,6 +13,7 @@ const FUNCIONALIDADES = [
   'carrito',
   'notificaciones',
   'historial',
+  'asistente',
 ];
 const sinSubir = {
   // Dentro de una funcionalidad o de components/ se admite ../ (misma capa); salir de ella

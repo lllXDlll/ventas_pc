@@ -1,6 +1,14 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, ChevronDown, Minus, Plus, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  Minus,
+  Plus,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ImagenProducto, ProductCard } from '@/components/producto/producto';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +19,7 @@ import { type CodigoCategoria, NOMBRES_CATEGORIA } from '@/lib/atributos';
 import { formatoPrecio } from '@/lib/format';
 import { ICONO_CATEGORIA } from '@/lib/iconos-categoria';
 import type { Producto } from '@/lib/tipos';
+import { nombreUso } from '@/lib/usos';
 import { cn } from '@/lib/utils';
 import type { Rechazo } from '../api';
 import { MAX_CANTIDAD } from '../seleccion';
@@ -280,12 +289,15 @@ export function ResumenArmado({
   compatibilidad,
   acciones,
   aviso,
+  origen,
 }: {
   elegidos: Elegido[];
   total: string;
   compatibilidad: ReactNode;
   acciones: ReactNode;
   aviso: ReactNode;
+  /** Insignia de una configuración recomendada por el asistente (Sprint 5). */
+  origen?: ReactNode;
 }) {
   return (
     <aside
@@ -293,6 +305,7 @@ export function ResumenArmado({
       className="flex flex-col gap-4 self-start rounded-card border border-border bg-card p-5 lg:sticky lg:top-36"
     >
       <h2 className="text-xl">Tu armado</h2>
+      {origen}
       {elegidos.length === 0 ? (
         <p className="text-sm text-text-muted">Aún no elegiste componentes.</p>
       ) : (
@@ -353,5 +366,24 @@ export function BotonCarritoArmado({
       </Button>
       <span className="text-xs text-text-muted">{motivo}</span>
     </div>
+  );
+}
+
+/** Configuración que vino del asistente (spec armador, Sprint 5). */
+export function InsigniaAsistente({
+  presupuesto,
+  uso,
+}: {
+  presupuesto: string | null | undefined;
+  uso: string | null | undefined;
+}) {
+  return (
+    <p className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
+      <Badge variante="ia">
+        <Sparkles strokeWidth={1.5} /> Recomendada por IA
+      </Badge>
+      {presupuesto && <span>Presupuesto {formatoPrecio(presupuesto)}</span>}
+      {uso && <span>· {nombreUso(uso)}</span>}
+    </p>
   );
 }

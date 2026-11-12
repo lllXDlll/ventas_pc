@@ -21,6 +21,9 @@ export interface Validacion {
 export interface VistaConfiguracion extends Validacion {
   id: string;
   estado: 'VALIDA' | 'INVALIDA' | 'BORRADOR';
+  origen?: 'MANUAL' | 'IA';
+  presupuesto?: string | null;
+  uso?: string | null;
   total: string;
   agregable: boolean;
   faltantes: { productoId: string; disponible: number; cantidad: number }[];

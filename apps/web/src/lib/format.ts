@@ -28,3 +28,12 @@ export function formatoFecha(iso: string, corta = false): string {
 
 /** Contador de una insignia: "9+" a partir de 10. */
 export const formatoContador = (n: number) => (n > 9 ? '9+' : String(n));
+
+const HORA = new Intl.DateTimeFormat('es-PE', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
+/** Hora local "HH:MM" (cupo del asistente, Sprint 5). */
+export const formatoHora = (iso: string) => HORA.format(new Date(iso));
