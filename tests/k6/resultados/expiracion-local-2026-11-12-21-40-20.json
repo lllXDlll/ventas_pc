@@ -1,0 +1,20 @@
+{
+  "escenario": "expiracion",
+  "fecha": "2026-11-12T21:40:20.353Z",
+  "entorno": "local",
+  "conteos": {
+    "reservas_primera_oleada": 5,
+    "reservas_segunda_oleada": 5,
+    "disponible_tras_expirar": 5,
+    "respuestas_inesperadas": 0
+  },
+  "latenciaMs": {
+    "p50": 771.5461,
+    "p90": 804.796,
+    "p95": 809.2006,
+    "max": 809.2006
+  },
+  "umbrales": {
+    "ok": true
+  }
+}

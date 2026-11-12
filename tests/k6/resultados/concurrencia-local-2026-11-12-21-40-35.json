@@ -1,0 +1,19 @@
+{
+  "escenario": "concurrencia",
+  "fecha": "2026-11-12T21:40:35.965Z",
+  "entorno": "local",
+  "conteos": {
+    "reservas_exitosas": 5,
+    "reservas_sin_stock": 295,
+    "respuestas_inesperadas": 0
+  },
+  "latenciaMs": {
+    "p50": 3806.15635,
+    "p90": 3824.5904,
+    "p95": 3828.1745,
+    "max": 3831.238
+  },
+  "umbrales": {
+    "ok": true
+  }
+}

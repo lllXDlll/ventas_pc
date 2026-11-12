@@ -217,9 +217,12 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 | Parámetro | Valor | Dónde se configura |
 |---|---|---|
 | TTL de reservas | 10 min | `RESERVA_TTL_MIN` (admite decimales: las pruebas usan 0.05 = 3 s) |
-| Margen de potencia de la fuente | 20 % | Parámetro `margenPorcentaje` de la regla `POTENCIA` en `reglas_compatibilidad` |
-| Consumo base (placa, RAM, almacenamiento) | 0 W | Parámetro `consumoBaseW` de la regla `POTENCIA` |
-| Escenario de carga | 300 usuarios virtuales, componente con 5 unidades | Script k6 |
+| Margen de potencia de la fuente | 20 % (entero de 0 a 100) | Parámetro `margenPorcentaje` de la regla `POTENCIA`; editable en `/admin/reglas` |
+| Consumo base (placa, RAM, almacenamiento) | 0 W (entero de 0 a 500) | Parámetro `consumoBaseW` de la regla `POTENCIA`; editable en `/admin/reglas` |
+| Escenario de carga | 300 usuarios virtuales, componente con 5 unidades; idempotencia, expiración y pérdida del almacén | Scripts de `tests/k6/` |
+| Rango de los reportes | Últimos 30 días; máximo 366; fechas inclusivas en hora de Lima | `MAX_DIAS` y `DIAS_POR_DEFECTO` en `apps/api/src/admin/rango.ts` |
+| Precio del modelo (costo estimado) | Opus 5.5: US$4 y US$20 por millón de tokens de entrada y salida | `PRECIOS_MODELO` en `apps/api/src/admin/reportes.service.ts` |
+| Rutas de pruebas (`/pruebas`) | Ausentes | `PRUEBAS_HABILITADAS` (`"true"` solo en local y en la CI; nunca en `wrangler.jsonc`) |
 | Timeout de la API de IA | 20 s por intento (un reintento como máximo) | `IA_TIMEOUT_MS` |
 | Interruptor de la IA | Encendida | `IA_HABILITADA` (`"false"`: todo sale del respaldo, sin llamadas) |
 | Proveedor de IA | Claude por AI Gateway | `IA_PROVEEDOR` (`anthropic`; `simulado` en pruebas, CI y `wrangler dev`) y `IA_MODELO` |
@@ -280,6 +283,20 @@ Plan de recorte si el tiempo se acorta: mantener siempre concurrencia (Sprint 3)
 - **`productos.marca` admite nulos** para no romper la migración sobre datos existentes. La API la exige al crear y la semilla la completa; cuando todos los productos la tengan, se puede pasar a `NOT NULL`.
 - **Región de Neon (`us-east-2`) lejos de los Workers (São Paulo):** cada consulta suma ~150 ms y deja el rendimiento de Lighthouse móvil en 71–79 (objetivo 80). Decisión del desarrollador (Sprint 1.5): revisar la región en el Sprint 7; la opción es AWS `sa-east-1`.
 - **Las imágenes las sirve el Worker de la API** (`GET /productos/:id/imagen/:archivo`) con caché inmutable del navegador. Si el consumo de peticiones del plan gratuito aprieta, se agrega `caches.default` o un dominio público para el bucket.
+
+### Administración y endurecimiento (Sprint 6)
+- **Reglas** (`apps/api/src/admin/reglas.*`): `GET /admin/reglas` y `PATCH /admin/reglas/:codigo`.
+  - Cada regla tiene su esquema de parámetros en `motor/parametros.ts` (`ESQUEMA_PARAMETROS`). La API valida con él y el panel arma los campos con él.
+  - Un valor inválido o una clave desconocida responde 400 `PARAMETROS_INVALIDOS`. Los parámetros enviados reemplazan a los vigentes.
+  - El motor lee las reglas de Postgres en cada validación: un cambio aplica a la siguiente, sin caché.
+- **Reportes** (`apps/api/src/admin/reportes.*`): `GET /admin/reportes/ventas` y `GET /admin/reportes/asistente`, con `?desde&hasta` (AAAA-MM-DD).
+  - El rango es un intervalo semiabierto desde las 00:00 de Lima (UTC−5 fijo, sin horario de verano).
+  - La agregación se hace en SQL, con índices por `ordenes.creada_en` y `uso_asistente.creado_en`. Los importes van en texto con 2 decimales.
+  - El costo del asistente es **estimado**: usa el precio vigente del modelo, porque `uso_asistente` no guarda qué modelo respondió.
+  - Panel: `/admin/reglas`, `/admin/reportes/ventas` y `/admin/reportes/asistente`. Recharts va en un chunk aparte (~350 KB, ~100 KB comprimido) que solo cargan las rutas de reportes; cada gráfico tiene su tabla.
+- **Reconciliación tras perder el almacén:** el disponible es físico − la unión, por id, de las reservas del Durable Object y las `ACTIVA` vigentes de Postgres (una sola consulta para ambas). Así se recupera aunque el almacén haya perdido sus datos, sin contar dos veces ni pisar una reserva en vuelo.
+- **Rutas de pruebas:** `POST /pruebas/inventario/vaciar` (ADMIN) solo existe con `PRUEBAS_HABILITADAS="true"`. En producción responde 404, y una prueba unitaria falla si la variable aparece en `wrangler.jsonc`.
+- **Escaneo de secretos:** gitleaks v8.30.1 recorre todo el historial en el job `verificar` de la CI. Las excepciones van en `.gitleaks.toml`.
 
 ### Asistente de IA (Sprint 5)
 - **Flujo implementado** (`apps/api/src/asistente/`):

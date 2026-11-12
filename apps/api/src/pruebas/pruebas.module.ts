@@ -22,6 +22,3 @@ export class PruebasController {
 
 @Module({ controllers: [PruebasController] })
 export class PruebasModule {}
-
-/** El módulo de pruebas se registra solo con PRUEBAS_HABILITADAS="true". */
-export const pruebasHabilitadas = (valor: string | undefined) => valor === 'true';

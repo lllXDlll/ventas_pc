@@ -210,3 +210,41 @@ Después, el script borró todos los datos de la corrida.
 - **Latencia con IA:** 17 s de punta a punta en un solo intento: 13,8 s del modelo y el resto del catálogo, la reserva del cupo y el guardado. Está dentro del timeout de 20 s, y la pantalla muestra un indicador de espera mientras tanto.
 - **Respuesta del modelo:** respetó el presupuesto, eligió solo productos de la preselección y aprovechó las cantidades (2 discos), y las explicaciones salieron en español y por componente.
 - **`wrangler tail`** a veces no entrega el evento de `POST /asistente/recomendar` (muestreo). El motivo y los tokens de cada consulta también quedan en `uso_asistente`.
+
+## Pruebas de carga completas (Sprint 6, HU-37b, tareas 6.2 y 6.3, 2026-11-12)
+
+**Corrida local** (`wrangler dev --test-scheduled`, Postgres en Docker con `max_connections=400`; `RESERVA_TTL_MIN=1` y `PRUEBAS_HABILITADAS=true`). Los resúmenes están en `tests/k6/resultados/*-local-*.json`.
+
+| Escenario | Resultado | Latencia (p50 / p95 / máx.) |
+|---|---|---|
+| Concurrencia: 300 VUs sobre 5 unidades | **5** reservas, 295 sin stock, 0 inesperadas | 3,81 s / 3,83 s / 3,83 s |
+| Idempotencia: 5 clientes × 5 pagos simultáneos con la misma clave | **5** órdenes, una por cliente; 0 duplicadas | 1,92 s / 2,82 s / 2,83 s |
+| Expiración: 5 reservas sin pagar, TTL 1 min, 2.ª oleada de 50 | 1.ª oleada 5; disponible tras expirar 5; **2.ª oleada 5** | 0,77 s / 0,81 s / 0,81 s |
+| Pérdida del almacén: 2 reservas, vaciado del Durable Object, oleada de 50 | Reconstrucción perezosa **3**; tras reconciliar **3**; oleada **3** | 0,67 s / 0,69 s / 0,69 s |
+
+**Verificación en Postgres** (`tests/k6/verificar.mjs`, después de cada escenario):
+- vendido ≤ stock inicial;
+- stock físico ≥ 0;
+- Σ reservas activas ≤ stock físico;
+- los conteos propios de cada escenario.
+
+Todo en verde, y la base quedó sin los datos de las corridas.
+
+**Hallazgo corregido:** antes del Sprint 6, una reconciliación sobre un almacén vacío dejaba el disponible en el stock físico (5 en lugar de 3), porque solo descontaba las reservas que conocía el propio objeto. Ahora descuenta la unión de esas y las `ACTIVA` vigentes de Postgres (design D5). Lo cubren `test/pruebas.int.test.ts`, `test/inventario.e2e.test.ts` y el escenario de pérdida.
+
+**Hallazgo corregido (e2e del Sprint 6):** `Inventario.consultarVarios` armaba un `IN (?, …)` con un parámetro por producto, y el SQLite de los Durable Objects admite como máximo 100 parámetros por consulta. El asistente consulta todo el catálogo activo, así que habría fallado al pasar de 100 productos activos. La base local de pruebas llegó a 111 y lo reveló. Ahora la lectura va por tandas de 100 (síncrona, sin romper la atomicidad de `reservar`), con una prueba de 250 productos en `test/inventario.e2e.test.ts`.
+
+## Revisión de seguridad (Sprint 6, tareas 7.1 a 7.3, 2026-11-12)
+
+| Punto | Evidencia | Resultado |
+|---|---|---|
+| Hash de contraseñas | PBKDF2-SHA256, 50.000 iteraciones, sal propia y formato con parámetros (`auth/contrasenas.ts`). No se sube a 100.000, el máximo de Workers: duplicaría la CPU de cada registro e inicio de sesión, y el plan gratuito permite 10 ms | OK, decisión documentada |
+| Sesiones con vencimiento | 7 días (`SESSION_TTL_DAYS`); las vencidas o revocadas se rechazan (spec autenticacion); limpieza al iniciar sesión y diaria a las 04:00 UTC | OK |
+| Guardas de rol | `test/rutas-admin.e2e.test.ts` recorre todas las rutas registradas: toda `/admin` exige ADMIN y responde 401 sin sesión. El 403 con CLIENTE lo comprueban las pruebas de integración de catálogo, reglas y reportes | OK (incluye las 4 rutas nuevas) |
+| Validación de entradas | Los 18 `@Body` y `@Query` usan una clase DTO con `ValidationPipe` (`whitelist` y `forbidNonWhitelisted`). Los ids de ruta con formato inválido responden 404 sin consultar la base | OK, sin correcciones |
+| Límites de peticiones | Registro por IP y sesión por correo y por IP en el Durable Object `Limites`, con `CF-Connecting-IP`; asistente contado desde `uso_asistente` con bloqueo por usuario | OK |
+| IP real del cliente | La IP de `xdtech.store/cdn-cgi/trace` coincide con `cf-connecting-ip` en `wrangler tail` (`2800:200:ff80:240:…`, agrupada por /64) | OK |
+| Cookie de sesión | `scripts/seguridad-produccion.mjs`: `HttpOnly`, `Secure`, `SameSite=Lax` y `Domain=xdtech.store` | OK |
+| CORS | Un `Origin: https://ejemplo.invalid` no recibe `Access-Control-Allow-Origin`; `https://xdtech.store` recibe su origen y `Allow-Credentials: true` | OK |
+| Endpoint de pruebas | `POST /pruebas/inventario/vaciar` responde 404 en producción; la prueba unitaria falla si `PRUEBAS_HABILITADAS` aparece en `wrangler.jsonc` | OK |
+| Secretos en el repositorio | gitleaks v8.30.1 sobre los 91 commits del historial: sin hallazgos. Con una clave falsa de Anthropic en un repositorio desechable, la regla `anthropic-api-key` la detecta y termina con código 1. Desde ahora corre en el job `verificar` | OK |

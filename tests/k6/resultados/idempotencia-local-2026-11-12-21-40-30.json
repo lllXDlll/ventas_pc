@@ -1,0 +1,19 @@
+{
+  "escenario": "idempotencia",
+  "fecha": "2026-11-12T21:40:30.690Z",
+  "entorno": "local",
+  "conteos": {
+    "ordenes_unicas": 5,
+    "ordenes_duplicadas": 0,
+    "respuestas_inesperadas": 0
+  },
+  "latenciaMs": {
+    "p50": 1917.0415,
+    "p90": 2819.76022,
+    "p95": 2823.0605,
+    "max": 2825.2961
+  },
+  "umbrales": {
+    "ok": true
+  }
+}

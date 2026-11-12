@@ -111,9 +111,11 @@ export default tseslint.config(
   // app -> features -> components -> lib. Cada capa solo importa de las de abajo.
   ...capasFrontend(),
   {
-    // Scripts de k6 (HU-37a): globales del runtime de k6.
+    // Scripts de k6 (HU-37a y HU-37b): globales del runtime de k6.
     files: ['tests/k6/**/*.js'],
-    languageOptions: { globals: { open: 'readonly', __ENV: 'readonly', __VU: 'readonly' } },
+    languageOptions: {
+      globals: { open: 'readonly', __ENV: 'readonly', __VU: 'readonly', console: 'readonly' },
+    },
   },
   {
     // Scripts y configuraciones que corren en Node.

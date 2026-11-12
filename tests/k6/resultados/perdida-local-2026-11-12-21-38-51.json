@@ -1,0 +1,21 @@
+{
+  "escenario": "perdida",
+  "fecha": "2026-11-12T21:38:51.623Z",
+  "entorno": "local",
+  "conteos": {
+    "reservas_iniciales": 2,
+    "disponible_reconstruccion_perezosa": 3,
+    "disponible_tras_reconciliar": 3,
+    "reservas_tras_perdida": 3,
+    "respuestas_inesperadas": 0
+  },
+  "latenciaMs": {
+    "p50": 666.7109,
+    "p90": 684.6232,
+    "p95": 686.2911,
+    "max": 688.8574
+  },
+  "umbrales": {
+    "ok": true
+  }
+}

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { pruebasHabilitadas } from './pruebas.module';
+import { pruebasHabilitadas } from './habilitadas';
 
 describe('endpoint de pruebas (spec pruebas-carga, D6)', () => {
   it('la configuración de producción no define PRUEBAS_HABILITADAS', () => {

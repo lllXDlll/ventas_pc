@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { expect, type Page, test } from '@playwright/test';
-import { ADMIN, alerta, clienteConSesion, ingresar } from './datos';
+import { ADMIN, API, alerta, clienteConSesion, ingresar } from './datos';
 
 async function panelComoAdmin(page: Page) {
   await ingresar(page, ADMIN.correo, ADMIN.contrasena);
@@ -128,4 +128,20 @@ test('un ADMIN sube una imagen y se ve en el detalle público', async ({ page })
   const imagen = page.getByRole('img', { name: nombre });
   await expect(imagen).toHaveAttribute('src', /\/imagen\/[0-9a-f-]{36}\.png$/);
   expect(await imagen.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(64);
+});
+
+// Sprint 6 (tarea 8.1): las secciones nuevas del panel y el endpoint de pruebas.
+for (const ruta of ['/admin/reglas', '/admin/reportes/ventas', '/admin/reportes/asistente']) {
+  test(`@humo sin sesión, ${ruta} pide iniciar sesión como administrador`, async ({ page }) => {
+    await page.goto(ruta);
+    await expect(page.getByText('Inicia sesión como administrador')).toBeVisible();
+    await expect(page.getByRole('table')).toHaveCount(0);
+  });
+}
+
+test('@humo el endpoint de pruebas no existe fuera de local y CI', async ({ request }) => {
+  // En producción la variable PRUEBAS_HABILITADAS no existe: 404. En local y en la CI la ruta
+  // existe y exige ADMIN: sin sesión, 401. Nunca vacía el almacén sin sesión de ADMIN.
+  const res = await request.post(`${API}/pruebas/inventario/vaciar`);
+  expect(res.status()).toBe(process.env.E2E_URL ? 404 : 401);
 });

@@ -1,0 +1,14 @@
+# Configuración de gitleaks (spec entrega-continua, design D9 del Sprint 6).
+# Se usan las reglas por defecto, que incluyen las claves de Anthropic, Cloudflare,
+# cadenas de conexión y claves privadas. Los falsos positivos se declaran aquí, con su
+# motivo, y nunca desactivando el escaneo.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Valores de ejemplo y credenciales de prueba locales (no son secretos)"
+paths = [
+  # Plantillas de variables: solo valores de ejemplo.
+  '''(^|/)\.dev\.vars\.example$''',
+  '''(^|/)\.env\.example$''',
+]

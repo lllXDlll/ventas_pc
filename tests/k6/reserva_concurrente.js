@@ -2,10 +2,12 @@
 // (spec reservas "Sin sobreventa bajo concurrencia"). Prepara los datos tests/k6/preparar.mjs.
 //
 // Uso: k6 run tests/k6/reserva_concurrente.js   (API_URL sobrescribe la de datos.json)
+// El resumen queda en tests/k6/resultados/ (Sprint 6, spec pruebas-carga).
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import http from 'k6/http';
 import { Counter, Trend } from 'k6/metrics';
+import { resumen } from './comun.js';
 
 const datos = JSON.parse(open('./datos.json'));
 const cookies = new SharedArray('cookies', () => datos.cookies);
@@ -50,3 +52,9 @@ export default function () {
   else otras.add(1);
   check(res, { '201 o 409': (r) => r.status === 201 || r.status === 409 });
 }
+
+export const handleSummary = resumen(
+  'concurrencia',
+  ['reservas_exitosas', 'reservas_sin_stock', 'respuestas_inesperadas'],
+  'espera_reserva',
+);

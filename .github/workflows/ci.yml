@@ -38,6 +38,15 @@ jobs:
       DIRECT_URL: postgresql://xdtech:xdtech@localhost:5432/xdtech
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # gitleaks revisa todo el historial
+
+      # Escaneo de secretos (spec entrega-continua, Sprint 6 D9): un hallazgo falla el job y
+      # bloquea el despliegue. Versión fija; excepciones en .gitleaks.toml.
+      - name: Escaneo de secretos (gitleaks)
+        run: >-
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1
+          git /repo --config /repo/.gitleaks.toml --redact --no-banner
 
       - uses: pnpm/action-setup@v6 # usa la versión de "packageManager"
 

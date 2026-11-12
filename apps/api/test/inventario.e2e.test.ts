@@ -330,3 +330,17 @@ describe('Inventario: pérdida del almacén (Sprint 6, D5 y D6)', () => {
     expect(await inv.consultar('a')).toBe(0);
   });
 });
+
+describe('Inventario: muchos productos (límite de 100 parámetros de SQLite)', () => {
+  it('consultarVarios con 250 productos lee todos, en tandas', async () => {
+    const inv = inventario();
+    const ids = Array.from({ length: 250 }, (_, i) => `p-${i}`);
+    await inv.reconstruirVarios(
+      ids.slice(0, 240).map((productoId) => ({ productoId, cantidad: 2 })),
+    );
+    const r = await inv.consultarVarios(ids);
+    expect(Object.keys(r)).toHaveLength(250);
+    expect(Object.values(r).filter((v) => v === 2)).toHaveLength(240);
+    expect(r['p-245']).toBeNull();
+  });
+});

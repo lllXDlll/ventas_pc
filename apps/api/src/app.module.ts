@@ -11,7 +11,8 @@ import { HistorialModule } from './historial/historial.module';
 import { HealthModule } from './health/health.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { PagosModule } from './pagos/pagos.module';
-import { PruebasModule, pruebasHabilitadas } from './pruebas/pruebas.module';
+import { pruebasHabilitadas } from './pruebas/habilitadas';
+import { PruebasModule } from './pruebas/pruebas.module';
 import { PedidosModule } from './reservas/pedidos.module';
 import { ReservasModule } from './reservas/reservas.module';
 

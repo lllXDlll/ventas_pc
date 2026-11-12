@@ -37,6 +37,9 @@ export interface ResultadoExpiracion {
   filasEscritas: number;
 }
 
+/** Límite de parámetros enlazados por consulta en el SQLite de los Durable Objects. */
+const MAX_PARAMETROS_SQL = 100;
+
 export class Inventario extends DurableObject<Env> {
   private readonly sql: SqlStorage;
 
@@ -123,15 +126,7 @@ export class Inventario extends DurableObject<Env> {
     const { filasEscritas: filasExpiracion } = this.expirarSincrono(ahora);
 
     const ids = [...pedido.keys()];
-    const disponibles = new Map(
-      this.sql
-        .exec<{ producto_id: string; cantidad: number }>(
-          `SELECT producto_id, cantidad FROM disponible WHERE producto_id IN (${ids.map(() => '?').join(',')})`,
-          ...ids,
-        )
-        .toArray()
-        .map((f) => [f.producto_id, f.cantidad]),
-    );
+    const disponibles = this.leerDisponibles(ids);
 
     const faltantes = ids.filter((id) => !disponibles.has(id));
     if (faltantes.length > 0)
@@ -187,16 +182,29 @@ export class Inventario extends DurableObject<Env> {
     const resultado: Record<string, number | null> = Object.fromEntries(
       productoIds.map((id) => [id, null]),
     );
-    if (productoIds.length === 0) return resultado;
-    for (const fila of this.sql
-      .exec<{ producto_id: string; cantidad: number }>(
-        `SELECT producto_id, cantidad FROM disponible WHERE producto_id IN (${productoIds.map(() => '?').join(',')})`,
-        ...productoIds,
-      )
-      .toArray()) {
-      resultado[fila.producto_id] = fila.cantidad;
-    }
+    for (const [id, cantidad] of this.leerDisponibles(productoIds)) resultado[id] = cantidad;
     return resultado;
+  }
+
+  /**
+   * Disponible de varios productos, en tandas: el SQLite de los Durable Objects admite como
+   * máximo 100 parámetros por consulta (el asistente consulta todo el catálogo activo).
+   * Síncrono, para que reservar siga sin `await` entre la verificación y la escritura.
+   */
+  private leerDisponibles(productoIds: readonly string[]): Map<string, number> {
+    const vigentes = new Map<string, number>();
+    for (let i = 0; i < productoIds.length; i += MAX_PARAMETROS_SQL) {
+      const tanda = productoIds.slice(i, i + MAX_PARAMETROS_SQL);
+      for (const fila of this.sql
+        .exec<{ producto_id: string; cantidad: number }>(
+          `SELECT producto_id, cantidad FROM disponible WHERE producto_id IN (${tanda.map(() => '?').join(',')})`,
+          ...tanda,
+        )
+        .toArray()) {
+        vigentes.set(fila.producto_id, fila.cantidad);
+      }
+    }
+    return vigentes;
   }
 
   /**

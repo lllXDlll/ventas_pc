@@ -71,8 +71,8 @@
 
 ## 6. Pruebas de carga (HU-37b)
 
-- [ ] 6.1 `preparar.mjs --escenario <concurrencia|idempotencia|expiracion|perdida>` y `verificar.mjs` con los invariantes de la spec `pruebas-carga` y la limpieza de órdenes, comprobantes, notificaciones, reservas, sesiones, usuarios y producto. Se prueba en local preparando y limpiando cada escenario sin dejar filas.
-- [ ] 6.2 `idempotencia.js`, `expiracion.js` y `perdida_almacen.js` (D7), y `handleSummary` en los cuatro scripts hacia `tests/k6/resultados/`. Se verifica con una corrida local de los cuatro en verde: 5/5, una orden por cliente, segunda oleada 5 y tras la pérdida 3.
+- [x] 6.1 `preparar.mjs --escenario <concurrencia|idempotencia|expiracion|perdida>` y `verificar.mjs` con los invariantes de la spec `pruebas-carga` y la limpieza de órdenes, comprobantes, notificaciones, reservas, sesiones, usuarios y producto. Se prueba en local preparando y limpiando cada escenario sin dejar filas.
+- [x] 6.2 `idempotencia.js`, `expiracion.js` y `perdida_almacen.js` (D7), y `handleSummary` en los cuatro scripts hacia `tests/k6/resultados/`. Se verifica con una corrida local de los cuatro en verde: 5/5, una orden por cliente, segunda oleada 5 y tras la pérdida 3.
 - [ ] 6.3 Corridas finales:
   - expiración y pérdida en local;
   - concurrencia e idempotencia contra producción (`workers.dev`), con `verificar.mjs` limpio;
@@ -81,13 +81,13 @@
 
 ## 7. Endurecimiento de seguridad
 
-- [ ] 7.1 Revisión de código con evidencia en `docs/compatibilidad-cloudflare.md`:
+- [x] 7.1 Revisión de código con evidencia en `docs/compatibilidad-cloudflare.md`:
   - hash PBKDF2 de 50.000 iteraciones y por qué no se sube;
   - sesiones con vencimiento;
   - `@Roles('ADMIN')` en cada ruta `/admin` (prueba 2.5);
   - todo `@Body` y `@Query` con DTO validado, corrigiendo los que falten, con una prueba de integración por cada corrección;
   - límites en `Limites` y asistente contado desde `uso_asistente`.
-- [ ] 7.2 `.gitleaks.toml` y el paso de gitleaks, en versión fija y con `fetch-depth: 0`, en el job `verificar` de la CI (D9). Se corre en local sobre el historial completo, sin hallazgos fuera de las excepciones. Si aparece un secreto real, se avisa al usuario antes de seguir.
+- [x] 7.2 `.gitleaks.toml` y el paso de gitleaks, en versión fija y con `fetch-depth: 0`, en el job `verificar` de la CI (D9). Se corre en local sobre el historial completo, sin hallazgos fuera de las excepciones. Si aparece un secreto real, se avisa al usuario antes de seguir.
 - [ ] 7.3 `scripts/seguridad-produccion.mjs` (D8):
   - flags de la cookie;
   - CORS con origen ajeno y propio;
@@ -99,6 +99,6 @@
 
 ## 8. Cierre
 
-- [ ] 8.1 Escenario `@humo` contra producción: `/pruebas/inventario/vaciar` responde 404, y `/admin/reglas` y los reportes sin sesión llevan a `/ingresar`.
-- [ ] 8.2 Documentación en `docs/00_parte_tecnica.md`: gestión de reglas, reportes (rango en hora de Lima y costo estimado) y endpoint de pruebas; filas nuevas en la tabla de valores por defecto (`PRUEBAS_HABILITADAS`).
+- [ ] 8.1 Escenario `@humo` contra producción: `/pruebas/inventario/vaciar` responde 404, y `/admin/reglas` y los reportes sin sesión piden iniciar sesión como administrador (el comportamiento de `/admin` desde el Sprint 1).
+- [x] 8.2 Documentación en `docs/00_parte_tecnica.md`: gestión de reglas, reportes (rango en hora de Lima y costo estimado) y endpoint de pruebas; filas nuevas en la tabla de valores por defecto (`PRUEBAS_HABILITADAS`).
 - [ ] 8.3 CI en verde (verificar con gitleaks, e2e y desplegar) y `@humo` contra producción en verde tras el despliegue.
