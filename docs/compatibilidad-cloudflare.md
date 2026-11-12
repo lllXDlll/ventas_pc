@@ -163,3 +163,34 @@ CPU por petición en producción (`wrangler tail`), justo después del despliegu
 
 - **Validar cuesta lo mismo que listar el catálogo** (14 ms de mediana en el Sprint 1.5). El armador valida con 300 ms de antirrebote y caché por combinación de productos, así que no se valida en cada clic.
 - **Limpieza:** `DELETE FROM usuarios WHERE correo LIKE 'medicion-cpu-%@xdtech.test';` borra la cuenta, y sus configuraciones se borran en cascada.
+
+## Prueba de carga del Sprint 3 (HU-37a, tarea 5.2, 2026-11-12)
+
+**Resultado: OK, sin sobreventa.** Hubo una sola corrida de k6 contra producción, lanzada contra `xdtech-api.<cuenta>.workers.dev`. En `api.xdtech.store` el borde responde 429 a 300 peticiones desde una IP.
+
+**Escenario:**
+- `tests/k6/preparar.mjs` creó en Neon un producto de 5 unidades y 300 clientes, cada uno con sesión y 1 unidad en el carrito. Las sesiones se insertaron directamente en la base por el límite de registro por IP.
+- `tests/k6/reserva_concurrente.js` lanzó 300 VUs con 1 iteración cada uno sobre `POST /reservas`.
+
+| Resultado | Valor |
+|---|---|
+| Reservas exitosas (201) | **5** |
+| Sin stock (409) | 295 |
+| Respuestas inesperadas | 0 |
+| Latencia (p50 / p90 / p95 / máx.) | 2,53 s / 2,77 s / 2,81 s / 3,03 s |
+| CPU de `POST /reservas` 201 (`wrangler tail`, mediana) | 35 ms (23–143) |
+| CPU de `POST /reservas` 409 (mediana) | 97 ms (7–272; muchas instancias en frío a la vez) |
+
+**Verificación en Postgres** (`tests/k6/verificar.mjs`):
+- reservas activas: 5;
+- Σ reservado: 5 ≤ 5;
+- stock físico: 5 ≥ 0;
+- ninguna orden por encima del stock.
+
+Después, el script borró todos los datos de la corrida.
+
+**Observaciones:**
+- **CPU:** se pasa de los 10 ms del plan gratuito durante la ráfaga, sobre todo por el arranque de instancias nuevas. Ninguna petición fue cortada (0 respuestas inesperadas). Es lo previsto en el riesgo de CPU de la parte técnica; si apareciera `Exceeded CPU` en uso real, la salida es el plan de pago de Workers.
+- **Latencia:** la domina la cola del único Durable Object y los viajes a Neon (`us-east-2`).
+- **Captura parcial:** `wrangler tail` capturó 161 de 300 eventos, porque bajo esta carga muestrea.
+- **En local** (`wrangler dev`): 5 exitosas, 295 sin stock y 0 inesperadas. Postgres local necesita `max_connections=400`, porque sin Hyperdrive cada petición abre su conexión.
