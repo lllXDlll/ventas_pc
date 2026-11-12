@@ -91,7 +91,7 @@ La confirmación SHALL exigir una clave de idempotencia. Un reintento con la mis
 - **THEN** existe una sola orden y ambas devuelven esa orden
 
 ### Requirement: Pantalla de reserva
-Desde `/carrito`, "Iniciar compra" SHALL reservar y mostrar la cuenta regresiva hasta el vencimiento, el botón "Pagar" como "Disponible pronto" (Sprint 4) y el botón "Cancelar reserva". Si falta stock, MUST mostrar qué producto faltó. Al vencer, MUST indicar que la reserva expiró y permitir reservar de nuevo.
+Desde `/carrito`, "Iniciar compra" SHALL reservar y mostrar la cuenta regresiva hasta el vencimiento, el botón "Pagar", que lleva a la pantalla de pago `/pago` (Sprint 4), y el botón "Cancelar reserva". Si falta stock, MUST mostrar qué producto faltó. Al vencer, MUST indicar que la reserva expiró y permitir reservar de nuevo.
 
 #### Scenario: Cuenta regresiva
 - **WHEN** un cliente inicia la compra
@@ -100,3 +100,7 @@ Desde `/carrito`, "Iniciar compra" SHALL reservar y mostrar la cuenta regresiva 
 #### Scenario: Reserva vencida en pantalla
 - **WHEN** la cuenta regresiva llega a cero
 - **THEN** la pantalla indica que la reserva expiró y ofrece reservar de nuevo
+
+#### Scenario: Ir a pagar
+- **WHEN** un cliente con una reserva activa pulsa "Pagar"
+- **THEN** llega a `/pago` con la misma cuenta regresiva
