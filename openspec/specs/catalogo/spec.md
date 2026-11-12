@@ -119,11 +119,19 @@ Un producto con disponible cero MUST NOT aparecer en el listado público ni pres
 - **THEN** vuelve a aparecer en `GET /productos`
 
 ### Requirement: Disponibilidad a través del puerto del almacén
-La disponibilidad que muestra el catálogo SHALL obtenerse del servicio de disponibilidad. En este cambio, ese servicio devuelve el stock físico de Postgres; el Sprint 3 lo reemplaza por el disponible del almacén sin cambiar las respuestas del catálogo.
+La disponibilidad que muestra el catálogo SHALL obtenerse del servicio de disponibilidad, que desde el Sprint 3 la lee del almacén de disponibilidad: stock físico menos reservas activas. Las respuestas del catálogo MUST conservar su forma; solo cambia el valor de `disponible`.
 
 #### Scenario: Disponibilidad igual al stock físico
-- **WHEN** un producto tiene stock físico 7
+- **WHEN** un producto tiene stock físico 7 y ninguna reserva activa
 - **THEN** el catálogo informa una disponibilidad de 7
+
+#### Scenario: Disponibilidad con reservas
+- **WHEN** un producto tiene stock físico 7 y una reserva activa de 2
+- **THEN** el catálogo informa una disponibilidad de 5
+
+#### Scenario: Todo reservado
+- **WHEN** las reservas activas de un producto igualan su stock físico
+- **THEN** el producto no aparece en el listado público y su detalle lo marca como agotado
 
 ### Requirement: Catálogo de ejemplo
 Una semilla reproducible SHALL cargar un catálogo de ejemplo con productos de todas las categorías, cada uno con su marca: al menos dos sockets de procesador, dos marcas de procesador, dos tipos de RAM, fuentes de distinta potencia, gabinetes de distinto factor de forma y al menos un equipo armado. Las placas madre MUST tener su velocidad máxima de RAM, y al menos un procesador, el alto de su disipador. Ejecutarla de nuevo MUST NOT duplicar productos, y MUST completar la marca y los atributos que falten en los productos ya existentes, sin pisar los valores editados.

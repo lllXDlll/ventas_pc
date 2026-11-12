@@ -24,7 +24,7 @@ Cada vez que cambia la selección, la pantalla SHALL validar la configuración c
 - **THEN** el rechazo desaparece
 
 ### Requirement: Guardar y retomar el armado
-La pantalla SHALL permitir guardar la configuración. Sin sesión, MUST pedir iniciar sesión sin perder la selección. Una configuración guardada MUST poder reabrirse desde la URL del armador, e indicar si es agregable al carrito. Mientras el carrito no exista (Sprint 3), el botón "Agregar al carrito" se muestra deshabilitado si no es agregable, y como "Disponible pronto" si lo es.
+La pantalla SHALL permitir guardar la configuración. Sin sesión, MUST pedir iniciar sesión sin perder la selección. Una configuración guardada MUST poder reabrirse desde la URL del armador, e indicar si es agregable al carrito. El botón "Agregar al carrito" se muestra deshabilitado, con el motivo, si la configuración no es agregable. Si lo es, guarda la configuración y la agrega al carrito.
 
 #### Scenario: Guardar con sesión
 - **WHEN** un CLIENTE guarda su armado
@@ -33,6 +33,10 @@ La pantalla SHALL permitir guardar la configuración. Sin sesión, MUST pedir in
 #### Scenario: Guardar sin sesión
 - **WHEN** un visitante pulsa "Guardar" sin sesión
 - **THEN** se le pide iniciar sesión y, al volver, conserva los componentes elegidos
+
+#### Scenario: Agregar al carrito desde el armador
+- **WHEN** un CLIENTE con un armado compatible y con stock pulsa "Agregar al carrito"
+- **THEN** la configuración queda guardada y su ítem aparece en `/carrito`
 
 ### Requirement: Acceso desde el catálogo
 El acceso "Arma tu PC" del shell SHALL llevar al armador, y el botón "Usar en mi armado" del detalle de un producto SHALL abrir el armador con ese producto ya elegido.
