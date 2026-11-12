@@ -16,7 +16,7 @@ import {
   Pagination,
   SortSelect,
 } from '../components/filtros';
-import { ProductGrid } from '../components/producto';
+import { ProductGrid } from '@/components/producto/producto';
 import { aConsulta, type FiltrosCatalogo, leerFiltros } from '../filtros';
 import { useFacetas, useProductos } from '../hooks/use-catalogo';
 

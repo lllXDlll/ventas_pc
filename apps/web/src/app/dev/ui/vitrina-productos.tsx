@@ -3,7 +3,7 @@ import {
   ProductCardSkeleton,
   SpecsTable,
   StockBadge,
-} from '@/features/catalogo/components/producto';
+} from '@/components/producto/producto';
 import type { Producto } from '@/lib/tipos';
 
 // Componentes del catálogo en la vitrina, con datos de ejemplo (sin llamar a la API). La

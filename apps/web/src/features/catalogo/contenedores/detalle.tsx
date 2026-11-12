@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorApi, mensajeDeError } from '@/lib/api-client';
 import { formatoPrecio } from '@/lib/format';
 import { Breadcrumbs } from '../components/filtros';
-import { ImagenProducto, SpecsTable, StockBadge } from '../components/producto';
+import { ImagenProducto, SpecsTable, StockBadge } from '@/components/producto/producto';
 import { useProducto } from '../hooks/use-catalogo';
 
 /** Detalle de producto: un agotado se muestra como tal; uno inexistente, 404. */

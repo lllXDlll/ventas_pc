@@ -15,7 +15,8 @@ import { urlImagen } from '@/lib/imagen';
 import type { Producto } from '@/lib/tipos';
 import { cn } from '@/lib/utils';
 
-// Componentes de presentación del producto: solo props, sin llamadas a la API
+// Componentes de presentación del producto, compartidos por catálogo y armador (Sprint 2):
+// solo props, sin llamadas a la API
 // (spec arquitectura-frontend). El armador del Sprint 2 los reutiliza.
 
 /** Insignia de stock: "En stock", "Últimas N unidades" (≤ 5) o "Agotado". */

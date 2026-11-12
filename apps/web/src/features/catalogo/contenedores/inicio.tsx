@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { EstadoError, EstadoVacio } from '@/components/ui/estado';
 import { MegaMenu } from '@/components/layout/mega-menu';
 import { mensajeDeError } from '@/lib/api-client';
-import { ProductGrid } from '../components/producto';
+import { ProductGrid } from '@/components/producto/producto';
 import { useDestacados, useFacetas } from '../hooks/use-catalogo';
 
 /** 8 productos destacados del inicio, con sus estados de carga, vacío y error. */
