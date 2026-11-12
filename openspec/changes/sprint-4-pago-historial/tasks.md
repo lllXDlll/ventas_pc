@@ -39,6 +39,6 @@
 
 - [x] 6.1 E2e del flujo completo: registrarse, armar y agregar al carrito, reservar, pagar con `4242…`, ver comprobante, campana con 1 aviso, compra en "Mis compras", revalidar y abrir la configuración; más rechazo con reintento, aviso de agotado e impresión emulada
 - [x] 6.2 Actualizar los e2e del Sprint 3 que esperaban "Pagar" como "Disponible pronto"; axe en `/pago`, `/cuenta/*` y la campana abierta, y 360 px sin desbordes
-- [ ] 6.3 `@humo` contra producción solo con las pantallas nuevas, sin pagar
+- [x] 6.3 `@humo` contra producción solo con las pantallas nuevas, sin pagar
 - [x] 6.4 Documentación: `docs/00_parte_tecnica.md` (pago simulado, tarjetas de prueba, correlativo y su riesgo de hueco, deuda de reembolso) y `docs/compatibilidad-cloudflare.md` si cambian las mediciones
-- [ ] 6.5 CI en verde, despliegue con la migración aplicada en Neon y `@humo` contra producción en verde
+- [x] 6.5 CI en verde, despliegue con la migración aplicada en Neon y `@humo` contra producción en verde
