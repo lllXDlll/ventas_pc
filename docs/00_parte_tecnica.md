@@ -153,7 +153,7 @@ El **almacén de disponibilidad** es el Durable Object `Inventario` (sección 5.
 3. Ninguna venta se confirma sin una transacción en Postgres.
 4. **Reservar**: una única operación atómica verifica que todos los productos tengan disponible suficiente; si es así, descuenta todos, crea la reserva con vencimiento y la registra. Si falta alguno, no descuenta nada y devuelve cuál faltó. Si el disponible de un producto **no existe** en el almacén, la operación devuelve "no inicializado" (nunca lo trata como cero) y la API lo reconstruye desde Postgres y reintenta.
 5. **Registrar**: la API guarda la reserva en Postgres con estado ACTIVA (respaldo auditable).
-6. **Confirmar**: con `Idempotency-Key`, una transacción Postgres descuenta el stock físico con actualización condicional (`cantidad >= n AND version = v`), crea la orden y el comprobante y marca la reserva CONFIRMADA. Después cierra la reserva en el almacén **sin devolver stock**.
+6. **Confirmar**: con `Idempotency-Key`, una transacción Postgres descuenta el stock físico con actualización condicional (`cantidad >= n AND version = v`), crea la orden, el comprobante con su número correlativo y la notificación de compra, marca la reserva CONFIRMADA y vacía el carrito. Después cierra la reserva en el almacén **sin devolver stock**. Desde el Sprint 4 la invoca `POST /pagos/confirmar` solo cuando el pago simulado aprueba.
 7. **Expirar**: una operación atómica devuelve al disponible las cantidades de las reservas vencidas y las elimina. Se ejecuta con un **Cron Trigger cada minuto** y **antes de cada intento de reserva**. La reserva en Postgres pasa a EXPIRADA.
 8. **Reconciliar**: un Cron Trigger periódico (por ejemplo cada 5 minutos) recalcula el disponible como stock físico − reservas ACTIVAS y corrige el almacén. Además, la reconstrucción es **perezosa por producto**: si el disponible de un producto no existe, se recalcula desde Postgres sin sobrescribir uno existente. No se depende de un "arranque de la API", porque en Workers ocurre en cada instancia.
 9. **Idempotencia**: cada confirmación exige el encabezado `Idempotency-Key`; una restricción de unicidad en `ordenes` hace que un reintento devuelva la orden original.
@@ -176,8 +176,9 @@ Se conserva como referencia por si la opción B dejara de servir. No se implemen
 - Métodos del Sprint 3: `consultarVarios(ids)` (catálogo, 1 subrequest por página), `reconstruirVarios(items)` (reconstrucción perezosa en lote, sin sobrescribir), `liberar(reservaId)` (cancelar, reemplazar la reserva del cliente o compensar un fallo de Postgres), `reconciliar(fisicos)` y `ajustar(productoId, delta)` (cambio de stock desde el panel).
 - **La reconciliación cuenta las reservas dentro del objeto, no desde Postgres:** disponible = físico − reservas vigentes del propio objeto. Así una reserva hecha en el objeto y aún no registrada en Postgres (en vuelo) no se pisa.
 - **Margen de confirmación:** una reserva que vence en menos de 30 s ya no se confirma. Así el objeto nunca devuelve al disponible algo que Postgres está vendiendo. El `UPDATE` condicional (`cantidad >= n AND version = v`) impide igualmente que el stock físico quede negativo.
-- Una reserva activa por cliente: reservar de nuevo libera la anterior. El RPC `confirmar` del Worker (sin ruta HTTP) lo usa el pago del Sprint 4.
+- Una reserva activa por cliente: reservar de nuevo libera la anterior. El pago (`POST /pagos/confirmar`, Sprint 4) llama a `ConfirmacionService` dentro de Nest; el RPC `confirmar` del Worker (sin ruta HTTP) queda para uso interno.
 - **Prisma y concurrencia:** no se usa `findUnique` en la API. Prisma agrupa los `findUnique` simultáneos en una sola consulta y, con un `PrismaClient` por isolate, juntaba peticiones distintas sobre la conexión de una sola; workerd cancelaba las demás ("code had hung"). Se usa `findFirst`, y una regla de ESLint lo impide.
+- **Prisma y transacciones interactivas (Sprint 4):** Prisma también agrupa las consultas de una transacción interactiva (`batchBy: itx-<id>`) y las despacha en un `process.nextTick` compartido por el cliente. Con el cliente del isolate, la transacción de una petición se ejecutaba en el contexto de otra y, al terminar esa otra, workerd dejaba colgada su E/S: 3 pagos simultáneos de clientes distintos dejaban uno colgado con la transacción abierta. Las transacciones interactivas usan `conTransaccion()` (`datos/prisma.ts`): un `PrismaClient` propio por transacción sobre la conexión de la petición. Hoy solo la confirmación lo necesita.
 - Cada reserva escribe 2 + 2·N filas para N productos (4 con un producto, con tablas `WITHOUT ROWID`); el límite gratuito es de 100.000 filas escritas al día.
 - Medido en producción en el Sprint 0: 300 reservas concurrentes sobre 5 unidades dan exactamente 5; espera en el objeto p50 132 ms y p95 383 ms; 1 subrequest por reserva.
 - Sin cuota mensual de comandos, y una pieza externa menos. Las pruebas locales corren en el Durable Object local de `wrangler dev`.
@@ -225,6 +226,8 @@ Regla de decisión propuesta: se elige la opción A si pasa las pruebas y su con
 | Límite de inicio de sesión | 5 intentos fallidos por 15 min por correo; 50 por 15 min por IP | `LIMITE_LOGIN_CORREO_MAX`, `LIMITE_LOGIN_IP_MAX`, `LIMITE_LOGIN_VENTANA_MIN` |
 | Límite del asistente | 10 consultas por 24 h por usuario | Variable de entorno |
 | Reconciliación periódica | cada 5 min | Cron Trigger en `wrangler.jsonc` |
+| Pago simulado | `4242 4242 4242 4242` aprueba, `4000 0000 0000 0002` rechaza; cualquier otra tarjeta válida (Luhn) aprueba | `PAGO_SIMULADO_FORZAR` (`APROBAR` o `RECHAZAR`; vacía en producción) |
+| Número de comprobante | `XD-000001`, correlativo global | Secuencia `comprobante_numero_seq` (migración `comprobantes_correlativo`) |
 
 ## 8. Cómo trabajar con los sprints
 
@@ -273,9 +276,14 @@ Plan de recorte si el tiempo se acorta: mantener siempre concurrencia (Sprint 3)
 
 ### Deuda técnica registrada (Sprint 1.5)
 - **`productos.marca` admite nulos** para no romper la migración sobre datos existentes. La API la exige al crear y la semilla la completa; cuando todos los productos la tengan, se puede pasar a `NOT NULL`.
-- **Región de Neon () lejos de los Workers (São Paulo)**: cada consulta suma ~150 ms y deja el rendimiento de Lighthouse móvil en 71–79 (objetivo 80). Decisión del desarrollador (Sprint 1.5): revisar la región en el Sprint 7; la opción es AWS .
 - **Región de Neon (`us-east-2`) lejos de los Workers (São Paulo):** cada consulta suma ~150 ms y deja el rendimiento de Lighthouse móvil en 71–79 (objetivo 80). Decisión del desarrollador (Sprint 1.5): revisar la región en el Sprint 7; la opción es AWS `sa-east-1`.
 - **Las imágenes las sirve el Worker de la API** (`GET /productos/:id/imagen/:archivo`) con caché inmutable del navegador. Si el consumo de peticiones del plan gratuito aprieta, se agrega `caches.default` o un dominio público para el bucket.
+
+### Pago simulado y comprobantes (Sprint 4)
+- **No hay pasarela real** (fuera de alcance): el pago simulado decide por la tarjeta de prueba. Los datos de tarjeta no se guardan ni se registran; solo los 4 últimos dígitos quedan en el comprobante.
+- **Deuda para una pasarela real:** si el pago se aprueba y la confirmación falla después (por ejemplo, un ajuste de stock del ADMIN), aquí no se cobra nada; con una pasarela real habría que reembolsar o anular la autorización.
+- **Huecos en la numeración:** `nextval` no se deshace si la transacción falla después de tomarlo. Se toma después de crear la orden y antes de los últimos pasos para que sea improbable; si ocurre, se ve un salto, nunca un número repetido.
+- **Estado de la orden:** una orden solo existe cuando el pago se confirmó, así que su estado es siempre "Pagada" y no hay columna. Tampoco se marca qué configuración se compró: la reserva expande las configuraciones a productos.
 
 ### Criterio de trazabilidad
 Al cerrar el proyecto, RF-03 se reporta como "diferido con justificación", no como cumplido.

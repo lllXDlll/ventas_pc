@@ -53,7 +53,7 @@ test('con sesión, agregar desde el detalle aumenta el contador; el carrito edit
   await expect(contador(page, 0)).toBeVisible();
 });
 
-test('iniciar compra reserva con cuenta regresiva, "Pagar" pronto y se puede cancelar', async ({
+test('iniciar compra reserva con cuenta regresiva, "Pagar" lleva al pago y se puede cancelar', async ({
   page,
 }) => {
   await clienteConSesion(page);
@@ -62,10 +62,8 @@ test('iniciar compra reserva con cuenta regresiva, "Pagar" pronto y se puede can
   await resumen(page).getByRole('button', { name: 'Iniciar compra' }).click();
   const reserva = page.getByRole('region', { name: 'Tu reserva' });
   await expect(reserva.getByLabel('Tiempo restante')).toHaveText(/^(10:00|9:\d\d)$/);
-  await expect(reserva.getByRole('button', { name: 'Pagar' })).toHaveAttribute(
-    'aria-disabled',
-    'true',
-  );
+  // Desde el Sprint 4 "Pagar" lleva a la pantalla de pago (spec reservas).
+  await expect(reserva.getByRole('link', { name: 'Pagar' })).toHaveAttribute('href', '/pago');
   await reserva.getByRole('button', { name: 'Cancelar reserva' }).click();
   await expect(resumen(page).getByRole('button', { name: 'Iniciar compra' })).toBeVisible();
 });
