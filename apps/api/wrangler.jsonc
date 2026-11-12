@@ -43,6 +43,14 @@
     // Pago simulado (spec pagos): APROBAR o RECHAZAR fuerzan el resultado en pruebas; vacío,
     // decide la tarjeta de prueba.
     "PAGO_SIMULADO_FORZAR": "",
+    // Asistente de IA (spec asistente, Sprint 5). IA_HABILITADA distinto de "true" apaga la
+    // IA: todo sale del respaldo determinístico. Las llamadas van por AI Gateway; su URL y su
+    // token son secretos (IA_GATEWAY_URL, CF_AIG_TOKEN), nunca vars.
+    "IA_HABILITADA": "true",
+    "IA_PROVEEDOR": "anthropic",
+    "IA_MODELO": "claude-opus-5-5",
+    "IA_TIMEOUT_MS": "20000",
+    "ASISTENTE_LIMITE_24H": "10",
     // Límites de peticiones (spec limite-peticiones; sección 7 de la parte técnica).
     "LIMITE_REGISTRO_MAX": "5",
     "LIMITE_REGISTRO_VENTANA_MIN": "60",

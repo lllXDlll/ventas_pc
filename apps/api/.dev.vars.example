@@ -16,3 +16,11 @@ LIMITE_REGISTRO_VENTANA_MIN=60
 LIMITE_LOGIN_CORREO_MAX=5
 LIMITE_LOGIN_IP_MAX=50
 LIMITE_LOGIN_VENTANA_MIN=15
+
+# Asistente de IA (Sprint 5). En local se usa el proveedor simulado: sin red ni costo.
+# Para probar contra AI Gateway: IA_PROVEEDOR=anthropic e IA_GATEWAY_URL / CF_AIG_TOKEN
+# (secretos: nunca los subas al repositorio).
+IA_HABILITADA=true
+IA_PROVEEDOR=simulado
+IA_TIMEOUT_MS=20000
+ASISTENTE_LIMITE_24H=10

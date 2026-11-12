@@ -20,6 +20,9 @@ export interface Faltante {
 export interface VistaConfiguracion {
   id: string;
   origen: string;
+  /** Solo en las de origen IA (spec configuraciones, Sprint 5). */
+  presupuesto: string | null;
+  uso: string | null;
   estado: string;
   creadaEn: string;
   items: { producto: ProductoDeConfiguracion; cantidad: number }[];
@@ -41,9 +44,24 @@ export interface ResumenConfiguracion {
 
 const NO_EXISTE = { codigo: 'NO_ENCONTRADO', mensaje: 'La configuración no existe.' };
 const POR_PAGINA = 20;
+const SELECCION_BASE = {
+  id: true,
+  origen: true,
+  estado: true,
+  creadaEn: true,
+  presupuesto: true,
+  uso: true,
+} as const;
 
 function vista(
-  base: { id: string; origen: string; estado: string; creadaEn: Date },
+  base: {
+    id: string;
+    origen: string;
+    estado: string;
+    creadaEn: Date;
+    presupuesto?: Prisma.Decimal | null;
+    uso?: string | null;
+  },
   ev: Evaluacion,
 ): VistaConfiguracion {
   const total = ev.items.reduce(
@@ -60,6 +78,8 @@ function vista(
   return {
     id: base.id,
     origen: base.origen,
+    presupuesto: base.presupuesto?.toFixed(2) ?? null,
+    uso: base.uso ?? null,
     estado: base.estado,
     creadaEn: base.creadaEn.toISOString(),
     items: ev.items,
@@ -84,6 +104,8 @@ export class ConfiguracionesService {
         select: {
           id: true,
           origen: true,
+          presupuesto: true,
+          uso: true,
           estado: true,
           creadaEn: true,
           items: { select: { productoId: true, cantidad: true }, orderBy: { id: 'asc' } },
@@ -106,7 +128,34 @@ export class ConfiguracionesService {
           estado: ev.compatible ? 'VALIDA' : 'INVALIDA',
           items: { create: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad })) },
         },
-        select: { id: true, origen: true, estado: true, creadaEn: true },
+        select: SELECCION_BASE,
+      }),
+    );
+    return vista(creada, ev);
+  }
+
+  /**
+   * Configuración recomendada por el asistente (spec asistente y configuraciones, Sprint 5):
+   * origen IA con el presupuesto y el uso de la consulta. Se valida en modo estricto, como
+   * doble control antes de guardar.
+   */
+  async crearDesdeAsistente(
+    usuarioId: string,
+    items: ItemDto[],
+    consulta: { presupuesto: string; uso: string },
+  ): Promise<VistaConfiguracion> {
+    const ev = await this.compatibilidad.evaluar(items);
+    const creada = await conPrisma((p) =>
+      p.configuracion.create({
+        data: {
+          usuarioId,
+          origen: 'IA',
+          presupuesto: consulta.presupuesto,
+          uso: consulta.uso,
+          estado: ev.compatible ? 'VALIDA' : 'INVALIDA',
+          items: { create: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad })) },
+        },
+        select: SELECCION_BASE,
       }),
     );
     return vista(creada, ev);
@@ -125,7 +174,7 @@ export class ConfiguracionesService {
             create: items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad })),
           },
         },
-        select: { id: true, origen: true, estado: true, creadaEn: true },
+        select: SELECCION_BASE,
       }),
     );
     return vista(actualizada, ev);

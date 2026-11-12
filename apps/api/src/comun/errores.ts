@@ -8,7 +8,12 @@ export class DemasiadasPeticiones extends HttpException {
   constructor(
     readonly reintentarEnS: number,
     mensaje = 'Demasiados intentos. Espera un momento y vuelve a intentarlo.',
+    /** Otro código y datos adicionales (por ejemplo, el límite del asistente, Sprint 5). */
+    extra: { codigo?: string; detalle?: Record<string, unknown> } = {},
   ) {
-    super({ codigo: 'DEMASIADAS_PETICIONES', mensaje }, HttpStatus.TOO_MANY_REQUESTS);
+    super(
+      { codigo: extra.codigo ?? 'DEMASIADAS_PETICIONES', mensaje, detalle: extra.detalle },
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
   }
 }

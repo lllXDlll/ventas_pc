@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AsistenteModule } from './asistente/asistente.module';
 import { AuthModule } from './auth/auth.module';
 import { CarritoModule } from './carrito/carrito.module';
 import { CatalogoModule } from './catalogo/catalogo.module';
@@ -24,6 +25,7 @@ import { ReservasModule } from './reservas/reservas.module';
     NotificacionesModule,
     PagosModule,
     HistorialModule,
+    AsistenteModule,
   ],
 })
 export class AppModule {}
