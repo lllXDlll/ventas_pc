@@ -194,3 +194,19 @@ Después, el script borró todos los datos de la corrida.
 - **Latencia:** la domina la cola del único Durable Object y los viajes a Neon (`us-east-2`).
 - **Captura parcial:** `wrangler tail` capturó 161 de 300 eventos, porque bajo esta carga muestrea.
 - **En local** (`wrangler dev`): 5 exitosas, 295 sin stock y 0 inesperadas. Postgres local necesita `max_connections=400`, porque sin Hyperdrive cada petición abre su conexión.
+
+## Verificación del asistente en producción (Sprint 5, tarea 5.4, 2026-11-12)
+
+**Resultado: OK.** Claude Opus 5.5 responde por AI Gateway `xdtech-ia`, y cuando el gateway falla el cliente recibe la configuración del respaldo, nunca un error.
+
+| Consulta | Resultado | Latencia |
+|---|---|---|
+| S/ 6000, gaming, con la IA respondiendo | `respaldo: false`, `VALIDA`, agregable; S/ 5752 (Ryzen 5 7600, RX 7800 XT, 32 GB DDR5, 2 × 1 TB NVMe, 750 W) | 17,0 s |
+| 7 consultas (S/ 4000–6000; gaming, oficina y estudio) con el gateway respondiendo 402 | `respaldo: true`, `VALIDA`, agregable; motivo `IA_NO_DISPONIBLE` (`APIError 402`, en `wrangler tail`) | 3,6–5,3 s |
+
+**Observaciones:**
+- **El 402 vino del gateway, no del Worker:** la clave de Anthropic no estaba disponible para el gateway, que respondió *Payment Required*. Se corrigió en el panel, sin cambios de código. Ese caso sirvió de prueba real del respaldo con la IA inaccesible.
+- **Panel del gateway (consulta con IA):** 3038 tokens de entrada y 1167 de salida, **US$0,0355**, 13,8 s de duración en el gateway. Queda por debajo de los US$0,05 estimados por consulta.
+- **Latencia con IA:** 17 s de punta a punta en un solo intento: 13,8 s del modelo y el resto del catálogo, la reserva del cupo y el guardado. Está dentro del timeout de 20 s, y la pantalla muestra un indicador de espera mientras tanto.
+- **Respuesta del modelo:** respetó el presupuesto, eligió solo productos de la preselección y aprovechó las cantidades (2 discos), y las explicaciones salieron en español y por componente.
+- **`wrangler tail`** a veces no entrega el evento de `POST /asistente/recomendar` (muestreo). El motivo y los tokens de cada consulta también quedan en `uso_asistente`.
