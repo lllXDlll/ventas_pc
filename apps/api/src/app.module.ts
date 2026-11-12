@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
+import { CarritoModule } from './carrito/carrito.module';
 import { CatalogoModule } from './catalogo/catalogo.module';
 import { CompatibilidadModule } from './compatibilidad/compatibilidad.module';
 import { ConfiguracionesModule } from './configuraciones/configuraciones.module';
 import { HealthModule } from './health/health.module';
+import { PedidosModule } from './reservas/pedidos.module';
 import { ReservasModule } from './reservas/reservas.module';
 
 @Module({
@@ -14,6 +16,8 @@ import { ReservasModule } from './reservas/reservas.module';
     CatalogoModule,
     CompatibilidadModule,
     ConfiguracionesModule,
+    CarritoModule,
+    PedidosModule,
   ],
 })
 export class AppModule {}

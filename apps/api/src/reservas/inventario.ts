@@ -169,6 +169,127 @@ export class Inventario extends DurableObject<Env> {
     return existia;
   }
 
+  // ── Sprint 3 (design D1) ──────────────────────────────────────────────────────────
+
+  /** Disponible de varios productos en una llamada; null si no está inicializado. */
+  async consultarVarios(productoIds: string[]): Promise<Record<string, number | null>> {
+    const resultado: Record<string, number | null> = Object.fromEntries(
+      productoIds.map((id) => [id, null]),
+    );
+    if (productoIds.length === 0) return resultado;
+    for (const fila of this.sql
+      .exec<{ producto_id: string; cantidad: number }>(
+        `SELECT producto_id, cantidad FROM disponible WHERE producto_id IN (${productoIds.map(() => '?').join(',')})`,
+        ...productoIds,
+      )
+      .toArray()) {
+      resultado[fila.producto_id] = fila.cantidad;
+    }
+    return resultado;
+  }
+
+  /**
+   * Reconstrucción perezosa en lote: inserta solo los que no existen (nunca sobrescribe)
+   * y devuelve el valor vigente de cada uno.
+   */
+  async reconstruirVarios(items: ItemReserva[]): Promise<Record<string, number>> {
+    for (const { cantidad } of items) validarCantidad(cantidad, true);
+    this.ctx.storage.transactionSync(() => {
+      for (const { productoId, cantidad } of items) {
+        this.sql.exec(
+          'INSERT INTO disponible (producto_id, cantidad) VALUES (?, ?) ON CONFLICT (producto_id) DO NOTHING',
+          productoId,
+          cantidad,
+        );
+      }
+    });
+    const vigentes = await this.consultarVarios(items.map((i) => i.productoId));
+    return Object.fromEntries(Object.entries(vigentes).map(([id, v]) => [id, v ?? 0]));
+  }
+
+  /**
+   * Lo inverso de reservar: devuelve las cantidades al disponible y borra la reserva.
+   * Para cancelar, reemplazar la reserva de un cliente o compensar un fallo de Postgres.
+   * Devuelve false si la reserva ya no existía (expirada o cerrada).
+   */
+  async liberar(reservaId: string): Promise<boolean> {
+    let existia = false;
+    this.ctx.storage.transactionSync(() => {
+      existia =
+        this.sql.exec<{ id: string }>('SELECT id FROM reservas WHERE id = ?', reservaId).toArray()
+          .length > 0;
+      if (!existia) return;
+      this.devolverYBorrar(reservaId);
+    });
+    return existia;
+  }
+
+  /**
+   * Reconciliación (design D1): objetivo = físico − reservas vigentes del propio objeto.
+   * Se cuentan aquí y no desde Postgres para no pisar una reserva en vuelo (hecha en el
+   * objeto y aún no registrada en Postgres). Escribe solo si difiere o no existía.
+   */
+  async reconciliar(
+    fisicos: { productoId: string; fisico: number }[],
+    ahora: number = Date.now(),
+  ): Promise<{ corregidos: string[] }> {
+    this.expirarSincrono(ahora);
+    const corregidos: string[] = [];
+    this.ctx.storage.transactionSync(() => {
+      for (const { productoId, fisico } of fisicos) {
+        const reservado =
+          this.sql
+            .exec<{ total: number | null }>(
+              'SELECT SUM(cantidad) AS total FROM reserva_items WHERE producto_id = ?',
+              productoId,
+            )
+            .toArray()[0]?.total ?? 0;
+        const objetivo = Math.max(0, fisico - reservado);
+        const actual = this.sql
+          .exec<{ cantidad: number }>(
+            'SELECT cantidad FROM disponible WHERE producto_id = ?',
+            productoId,
+          )
+          .toArray()[0]?.cantidad;
+        if (actual === objetivo) continue;
+        this.sql.exec(
+          `INSERT INTO disponible (producto_id, cantidad) VALUES (?, ?)
+           ON CONFLICT (producto_id) DO UPDATE SET cantidad = excluded.cantidad`,
+          productoId,
+          objetivo,
+        );
+        corregidos.push(productoId);
+      }
+    });
+    return { corregidos };
+  }
+
+  /** Cambio de stock físico desde el panel: suma la diferencia si el producto existe. */
+  async ajustar(productoId: string, delta: number): Promise<number | null> {
+    if (!Number.isInteger(delta)) throw new RangeError(`delta inválido: ${delta}`);
+    this.sql.exec(
+      'UPDATE disponible SET cantidad = MAX(0, cantidad + ?) WHERE producto_id = ?',
+      delta,
+      productoId,
+    );
+    return this.consultar(productoId);
+  }
+
+  /** Devuelve los ítems de una reserva al disponible y la borra (sin transacción propia). */
+  private devolverYBorrar(id: string): number {
+    let filas = this.sql.exec(
+      `UPDATE disponible SET cantidad = cantidad + (
+         SELECT ri.cantidad FROM reserva_items ri
+         WHERE ri.reserva_id = ? AND ri.producto_id = disponible.producto_id)
+       WHERE producto_id IN (SELECT producto_id FROM reserva_items WHERE reserva_id = ?)`,
+      id,
+      id,
+    ).rowsWritten;
+    filas += this.sql.exec('DELETE FROM reserva_items WHERE reserva_id = ?', id).rowsWritten;
+    filas += this.sql.exec('DELETE FROM reservas WHERE id = ?', id).rowsWritten;
+    return filas;
+  }
+
   private expirarSincrono(ahora: number): ResultadoExpiracion {
     const vencidas = this.sql
       .exec<{ id: string }>('SELECT id FROM reservas WHERE vence_en <= ?', ahora)

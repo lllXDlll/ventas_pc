@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { env } from 'cloudflare:workers';
+import { fuenteFisicaPostgres } from './disponible.postgres';
 import { DisponibleDurableObject, DisponibleService } from './disponible.service';
 import type { Inventario } from './inventario';
 
@@ -10,7 +11,10 @@ import type { Inventario } from './inventario';
     {
       provide: DisponibleService,
       useFactory: () =>
-        new DisponibleDurableObject(env.INVENTARIO as DurableObjectNamespace<Inventario>),
+        new DisponibleDurableObject(
+          env.INVENTARIO as DurableObjectNamespace<Inventario>,
+          fuenteFisicaPostgres,
+        ),
     },
   ],
   exports: [DisponibleService],

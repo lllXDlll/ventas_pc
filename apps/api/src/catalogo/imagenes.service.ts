@@ -48,7 +48,7 @@ export class ImagenesService {
   private async claveActual(id: string): Promise<{ clave: string | null; activo: boolean }> {
     if (!esUuid(id)) throw new NotFoundException(NO_EXISTE);
     const fila = await conPrisma((p) =>
-      p.producto.findUnique({ where: { id }, select: { imagenClave: true, activo: true } }),
+      p.producto.findFirst({ where: { id }, select: { imagenClave: true, activo: true } }),
     );
     if (!fila) throw new NotFoundException(NO_EXISTE);
     return { clave: fila.imagenClave, activo: fila.activo };

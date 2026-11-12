@@ -38,6 +38,8 @@
     "FRONTEND_ORIGIN": "https://xdtech.store",
     "SESSION_TTL_DAYS": "7",
     "HEALTH_TIMEOUT_MS": "3000",
+    // Vencimiento de las reservas en minutos (spec reservas; admite decimales en pruebas).
+    "RESERVA_TTL_MIN": "10",
     // Límites de peticiones (spec limite-peticiones; sección 7 de la parte técnica).
     "LIMITE_REGISTRO_MAX": "5",
     "LIMITE_REGISTRO_VENTANA_MIN": "60",

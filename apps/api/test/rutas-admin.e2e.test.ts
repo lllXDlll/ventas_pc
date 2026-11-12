@@ -53,7 +53,8 @@ type FetchWorker = NonNullable<ExportedHandler<Env>['fetch']>;
 async function pedir(metodo: string, ruta: string) {
   const ctx = createExecutionContext();
   const url = `https://api.test${ruta.replace(/:[A-Za-z]+/g, '00000000-0000-7000-8000-000000000000')}`;
-  const res = await (worker.fetch as FetchWorker)(
+  const fetchWorker: FetchWorker = (req, e, c) => new worker(c, e).fetch(req);
+  const res = await fetchWorker(
     new Request(url, {
       method: metodo,
       headers: { 'content-type': 'application/json' },

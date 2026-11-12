@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { type INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import * as classTransformer from 'class-transformer';
@@ -12,8 +12,14 @@ export interface OpcionesApp {
   origenFrontend: string;
 }
 
-/** Configura NestJS sobre la instancia de Express recibida. No abre conexiones. */
-export async function crearApp(expressApp: Express, opciones: OpcionesApp): Promise<void> {
+/**
+ * Configura NestJS sobre la instancia de Express recibida. No abre conexiones. Devuelve la
+ * app para obtener servicios desde los crons y el RPC interno (Sprint 3).
+ */
+export async function crearApp(
+  expressApp: Express,
+  opciones: OpcionesApp,
+): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), {
     logger: ['error', 'warn'],
   });
@@ -37,4 +43,5 @@ export async function crearApp(expressApp: Express, opciones: OpcionesApp): Prom
   );
   app.useGlobalFilters(new FiltroErrores());
   await app.init();
+  return app;
 }

@@ -2,21 +2,21 @@
 
 ## 1. Almacén de disponibilidad
 
-- [ ] 1.1 Métodos `consultarVarios`, `reconstruirVarios`, `liberar`, `reconciliar` (cuenta las reservas dentro del objeto) y `ajustar` en `Inventario` (design D1). Se verifica con pruebas en el pool de workerd:
+- [x] 1.1 Métodos `consultarVarios`, `reconstruirVarios`, `liberar`, `reconciliar` (cuenta las reservas dentro del objeto) y `ajustar` en `Inventario` (design D1). Se verifica con pruebas en el pool de workerd:
   - lote con productos sin inicializar;
   - `reconstruirVarios` no sobrescribe;
   - `liberar` devuelve el stock y responde `false` si ya no existe;
   - `reconciliar` corrige un valor desviado y respeta una reserva vigente;
   - `ajustar` en un producto sin inicializar no hace nada.
-- [ ] 1.2 `DisponibleDurableObject.disponibles()` sobre `consultarVarios`, con reconstrucción perezosa en lote desde Postgres (stock físico − reservas `ACTIVA` vigentes, design D2). Se verifica con una prueba de integración: con el objeto vacío, `GET /productos` informa el disponible correcto.
-- [ ] 1.3 Catálogo: excluir `productosSinDisponible()` en el listado y las facetas, y llamar a `ajustar` al cambiar el stock desde el panel (design D2 y D7). Se verifica con pruebas de integración:
+- [x] 1.2 `DisponibleDurableObject.disponibles()` sobre `consultarVarios`, con reconstrucción perezosa en lote desde Postgres (stock físico − reservas `ACTIVA` vigentes, design D2). Se verifica con una prueba de integración: con el objeto vacío, `GET /productos` informa el disponible correcto.
+- [x] 1.3 Catálogo: excluir `productosSinDisponible()` en el listado y las facetas, y llamar a `ajustar` al cambiar el stock desde el panel (design D2 y D7). Se verifica con pruebas de integración:
   - un producto con stock 7 y una reserva de 2 muestra 5;
   - con todo reservado, desaparece del listado y su detalle dice agotado;
   - una reposición de 5 a 8 sube el disponible en 3.
 
 ## 2. Carrito
 
-- [ ] 2.1 Módulo `carrito/` con sesión:
+- [x] 2.1 Módulo `carrito/` con sesión:
   - `GET /carrito`, `POST /carrito` (producto o configuración revalidada; 409 si es incompatible), `PATCH` y `DELETE /carrito/items/:id`, y `DELETE /carrito`;
   - total con los precios vigentes, `sinDisponible` y `cantidadProductos` (design D6).
 
@@ -24,7 +24,7 @@
 
 ## 3. Reservas, expiración, confirmación y reconciliación
 
-- [ ] 3.1 `RESERVA_TTL_MIN` (D8) y `ReservasService.reservar`:
+- [x] 3.1 `RESERVA_TTL_MIN` (D8) y `ReservasService.reservar`:
   - expansión del carrito y marca de las vencidas en Postgres;
   - liberar la anterior;
   - `reservar` con `NO_INICIALIZADO`, reconstrucción y reintento;
@@ -32,8 +32,8 @@
   - registro en Postgres con compensación (design D3).
 
   Expuesto como `POST /reservas`, `GET /reservas/activa` y `DELETE /reservas/:id`. Se verifica con pruebas de integración: éxito, 409 sin descontar nada, reemplazo de la activa, cancelar, 404 ajena y carrito vacío.
-- [ ] 3.2 Tarea `expirar` del cron, con ids del objeto, marca en Postgres y registro (design D4). Se verifica con pruebas de integración con `RESERVA_TTL_MIN=0.05`: tras el disparo del cron, el disponible se devuelve y la reserva queda `EXPIRADA`; además, la expiración también ocurre antes de reservar.
-- [ ] 3.3 `ConfirmacionService.confirmar` (design D5):
+- [x] 3.2 Tarea `expirar` del cron, con ids del objeto, marca en Postgres y registro (design D4). Se verifica con pruebas de integración con `RESERVA_TTL_MIN=0.05`: tras el disparo del cron, el disponible se devuelve y la reserva queda `EXPIRADA`; además, la expiración también ocurre antes de reservar.
+- [x] 3.3 `ConfirmacionService.confirmar` (design D5):
   - transacción con `FOR UPDATE`;
   - margen de 30 s;
   - `UPDATE` condicional con versión y reintentos;
@@ -47,11 +47,11 @@
   - misma clave dos veces → una orden;
   - dos confirmaciones simultáneas con la misma clave → una orden;
   - otra clave de la misma reserva → error.
-- [ ] 3.4 Tarea `reconciliar` del cron con `ReconciliacionService` (stock físico de los productos activos y `Inventario.reconciliar`) y su registro. Se verifica con pruebas de integración:
+- [x] 3.4 Tarea `reconciliar` del cron con `ReconciliacionService` (stock físico de los productos activos y `Inventario.reconciliar`) y su registro. Se verifica con pruebas de integración:
   - vaciar el objeto y comprobar que el disponible vuelve a ser correcto sin intervención;
   - desviar un valor y comprobar que se corrige;
   - una reserva durante la reconciliación queda descontada.
-- [ ] 3.5 Concurrencia: 60 clientes con sesión reservan a la vez 1 unidad de un producto de 5. Se verifica con una prueba de integración: exactamente 5 respuestas 201, el resto 409, y el disponible final es 0.
+- [x] 3.5 Concurrencia: 60 clientes con sesión reservan a la vez 1 unidad de un producto de 5. Se verifica con una prueba de integración: exactamente 5 respuestas 201, el resto 409, y el disponible final es 0.
 
 ## 4. Frontend
 

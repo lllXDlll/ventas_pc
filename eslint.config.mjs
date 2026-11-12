@@ -83,6 +83,21 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
+  {
+    // Prisma agrupa los findUnique simultáneos en una sola consulta: con un PrismaClient por
+    // isolate, juntaba peticiones distintas sobre la conexión de una sola, y workerd
+    // cancelaba las demás ("code had hung"). Se usa findFirst (Sprint 3).
+    files: ['apps/api/src/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'MemberExpression[property.name=/^findUnique(OrThrow)?$/]',
+          message: 'Usa findFirst: findUnique se agrupa entre peticiones y cuelga el Worker.',
+        },
+      ],
+    },
+  },
   // Capas del frontend (spec arquitectura-frontend, design D2 del Sprint 1.5):
   // app -> features -> components -> lib. Cada capa solo importa de las de abajo.
   ...capasFrontend(),

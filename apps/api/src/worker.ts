@@ -4,13 +4,17 @@
 import 'reflect-metadata';
 import { createServer } from 'node:http';
 import { httpServerHandler } from 'cloudflare:node';
-import { env } from 'cloudflare:workers';
+import { HttpException, type INestApplication } from '@nestjs/common';
+import { env, WorkerEntrypoint } from 'cloudflare:workers';
 import express from 'express';
 import { crearApp } from './app';
 import { enPeticion, precalentarPrisma } from './datos/prisma';
 import { despachar, tareasPorDefecto } from './programadas/despacho';
 import { limpiarSesiones } from './programadas/limpieza-sesiones';
 import { borrarSesionesCaducadas } from './programadas/limpieza-sesiones.bd';
+import { ConfirmacionService, type OrdenConfirmada } from './reservas/confirmacion.service';
+import { ReconciliacionService } from './reservas/reconciliacion.service';
+import { ReservasService } from './reservas/reservas.service';
 
 export { Inventario } from './reservas/inventario';
 export { Limites } from './auth/limites';
@@ -19,9 +23,9 @@ export { Limites } from './auth/limites';
 const PUERTO = 8080;
 
 const expressApp = express();
-let lista: Promise<void> | undefined;
+let lista: Promise<INestApplication> | undefined;
 
-function asegurarApp(): Promise<void> {
+function asegurarApp(): Promise<INestApplication> {
   lista ??= crearApp(expressApp, { origenFrontend: env.FRONTEND_ORIGIN }).catch((error) => {
     lista = undefined; // reintentar en la siguiente petición
     throw error;
@@ -70,19 +74,67 @@ try {
   );
 }
 
+/** Una tarea que falla queda registrada y no rompe el handler scheduled. */
+const segura = (tarea: string, fn: () => Promise<void>) => async (): Promise<void> => {
+  try {
+    await fn();
+  } catch (error) {
+    console.error(
+      JSON.stringify({ nivel: 'error', mensaje: 'falló la tarea', tarea, error: String(error) }),
+    );
+  }
+};
+
+/** Registro estructurado del resultado de una tarea programada. */
+const registrar = (tarea: string, datos: Record<string, unknown>) =>
+  console.log(JSON.stringify({ nivel: 'info', mensaje: 'resultado de tarea', tarea, ...datos }));
+
 const tareasProduccion = {
   ...tareasPorDefecto,
+  // Sprint 3: expiración de reservas vencidas (cada minuto) y reconciliación (cada 5 min).
+  expirar: segura('expirar', async () => {
+    const app = await asegurarApp();
+    registrar('expirar', { expiradas: await app.get(ReservasService).expirar() });
+  }),
+  reconciliar: segura('reconciliar', async () => {
+    const app = await asegurarApp();
+    const corregidos = await app.get(ReconciliacionService).reconciliar();
+    registrar('reconciliar', { corregidos: corregidos.length });
+  }),
   limpiarSesiones: async () => void (await limpiarSesiones(borrarSesionesCaducadas)),
 };
 
-export default {
+/**
+ * Entrada del Worker. Clase WorkerEntrypoint: además de fetch y scheduled expone por RPC
+ * (solo alcanzable por service bindings, nunca por HTTP) la confirmación de reservas,
+ * que el pago del Sprint 4 usará por dentro (design D5 del Sprint 3).
+ */
+export default class Api extends WorkerEntrypoint<Env> {
   // Una conexión a Postgres por petición HTTP; se cierra con waitUntil tras responder.
-  fetch: (request, env, ctx) =>
-    enPeticion(
-      async () => fetchHttp(request, env, ctx),
-      (cierre) => ctx.waitUntil(cierre),
-    ),
-  async scheduled(controller, _env, ctx) {
-    ctx.waitUntil(despachar(controller.cron, tareasProduccion).then(() => undefined));
-  },
-} satisfies ExportedHandler<Env>;
+  override fetch(request: Request): Promise<Response> {
+    return enPeticion(
+      async () =>
+        fetchHttp!(request as Request<unknown, IncomingRequestCfProperties>, this.env, this.ctx),
+      (cierre) => this.ctx.waitUntil(cierre),
+    );
+  }
+
+  override async scheduled(controller: ScheduledController): Promise<void> {
+    this.ctx.waitUntil(despachar(controller.cron, tareasProduccion).then(() => undefined));
+  }
+
+  async confirmar(usuarioId: string, reservaId: string, clave: string): Promise<OrdenConfirmada> {
+    const app = await asegurarApp();
+    try {
+      return await enPeticion(() =>
+        app.get(ConfirmacionService).confirmar(usuarioId, reservaId, clave),
+      );
+    } catch (error) {
+      // Por RPC solo viaja el mensaje: se envía el { codigo, mensaje } de la excepción.
+      if (error instanceof HttpException) {
+        throw new Error(JSON.stringify(error.getResponse()), { cause: error });
+      }
+      throw error;
+    }
+  }
+}

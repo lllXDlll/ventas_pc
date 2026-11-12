@@ -201,3 +201,76 @@ describe('Inventario: concurrencia', () => {
     expect(r).toMatchObject({ ok: true, filasEscritas: 8 });
   });
 });
+
+describe('Inventario: métodos del Sprint 3', () => {
+  it('consultarVarios: una llamada, null para los no inicializados', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 3);
+    expect(await inv.consultarVarios(['a', 'b'])).toEqual({ a: 3, b: null });
+    expect(await inv.consultarVarios([])).toEqual({});
+  });
+
+  it('reconstruirVarios: inserta los que faltan sin sobrescribir y devuelve lo vigente', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 3);
+    const r = await inv.reconstruirVarios([
+      { productoId: 'a', cantidad: 9 },
+      { productoId: 'b', cantidad: 4 },
+    ]);
+    expect(r).toEqual({ a: 3, b: 4 });
+  });
+
+  it('liberar: devuelve el stock y borra la reserva; false si ya no existe', async () => {
+    const inv = inventario();
+    await inv.reconstruirVarios([
+      { productoId: 'a', cantidad: 5 },
+      { productoId: 'b', cantidad: 2 },
+    ]);
+    const r = await inv.reservar(
+      [
+        { productoId: 'a', cantidad: 2 },
+        { productoId: 'b', cantidad: 1 },
+      ],
+      Date.now() + 10 * MINUTO,
+      'res-1',
+    );
+    expect(r.ok).toBe(true);
+    expect(await inv.consultarVarios(['a', 'b'])).toEqual({ a: 3, b: 1 });
+    expect(await inv.liberar('res-1')).toBe(true);
+    expect(await inv.consultarVarios(['a', 'b'])).toEqual({ a: 5, b: 2 });
+    expect(await inv.liberar('res-1')).toBe(false);
+    expect(await inv.consultar('a')).toBe(5);
+  });
+
+  it('reconciliar: corrige un valor desviado y respeta las reservas vigentes', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 10);
+    await inv.reservar([{ productoId: 'a', cantidad: 2 }], Date.now() + 10 * MINUTO, 'r1');
+    // Desvío: el objeto dice 8, pero el físico es 7 → objetivo 7 − 2 = 5.
+    const r = await inv.reconciliar([
+      { productoId: 'a', fisico: 7 },
+      { productoId: 'nuevo', fisico: 4 },
+    ]);
+    expect(r.corregidos.sort()).toEqual(['a', 'nuevo']);
+    expect(await inv.consultarVarios(['a', 'nuevo'])).toEqual({ a: 5, nuevo: 4 });
+    // Sin desvío: no corrige nada.
+    expect((await inv.reconciliar([{ productoId: 'a', fisico: 7 }])).corregidos).toEqual([]);
+  });
+
+  it('reconciliar: expira primero las vencidas (no las cuenta como reservadas)', async () => {
+    const inv = inventario();
+    const ahora = Date.now();
+    await inv.reconstruir('a', 5);
+    await inv.reservar([{ productoId: 'a', cantidad: 3 }], ahora + 1_000, 'vieja', ahora);
+    await inv.reconciliar([{ productoId: 'a', fisico: 5 }], ahora + 2_000);
+    expect(await inv.consultar('a')).toBe(5);
+  });
+
+  it('ajustar: suma la diferencia si existe, nunca baja de 0, y no inicializa', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 5);
+    expect(await inv.ajustar('a', 3)).toBe(8);
+    expect(await inv.ajustar('a', -20)).toBe(0);
+    expect(await inv.ajustar('sin-inicializar', 4)).toBeNull();
+  });
+});

@@ -12,6 +12,7 @@ interface __BaseEnv_Env {
 	FRONTEND_ORIGIN: string;
 	SESSION_TTL_DAYS: string;
 	HEALTH_TIMEOUT_MS: string;
+	RESERVA_TTL_MIN: string;
 	DIRECT_URL: string;
 	INVENTARIO: DurableObjectNamespace /* Inventario */;
 	LIMITES: DurableObjectNamespace /* Limites */;

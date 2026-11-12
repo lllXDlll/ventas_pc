@@ -79,7 +79,7 @@ export class AuthService {
     await this.limites.antesDeLogin(correo, ip);
 
     const usuario = await conPrisma((p) =>
-      p.usuario.findUnique({
+      p.usuario.findFirst({
         where: { correo },
         select: { id: true, correo: true, rol: true, estado: true, hashContrasena: true },
       }),
@@ -121,7 +121,7 @@ export class AuthService {
   async resolverSesion(token: string | undefined): Promise<SesionActual | null> {
     if (!token) return null;
     const sesion = await conPrisma(async (p) =>
-      p.sesion.findUnique({
+      p.sesion.findFirst({
         where: { tokenHash: await hashToken(token) },
         select: {
           id: true,

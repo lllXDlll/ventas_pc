@@ -10,7 +10,8 @@ import worker from '../src/worker';
 const ORIGEN_FRONTEND = 'http://localhost:3000';
 
 type FetchWorker = NonNullable<ExportedHandler<Env>['fetch']>;
-const fetchWorker = worker.fetch as FetchWorker;
+// El Worker es una clase WorkerEntrypoint (Sprint 3): se instancia con ctx y env.
+const fetchWorker: FetchWorker = (req, e, ctx) => new worker(ctx, e).fetch(req);
 
 async function pedir(ruta: string, init?: RequestInit) {
   const ctx = createExecutionContext();
@@ -69,7 +70,7 @@ describe('handler scheduled', () => {
     const controller = createScheduledController({ scheduledTime: Date.now(), cron: '* * * * *' });
     const ctx = createExecutionContext();
 
-    await worker.scheduled(controller, env, ctx);
+    await new worker(ctx, env).scheduled(controller);
     await waitOnExecutionContext(ctx);
 
     expect(log).toHaveBeenCalledWith(expect.stringContaining('"tarea":"expirar"'));

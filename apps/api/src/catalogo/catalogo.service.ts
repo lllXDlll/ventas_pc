@@ -99,13 +99,36 @@ function porTexto(q: string | undefined): Prisma.ProductoWhereInput[] {
   ];
 }
 
-/** Activos con disponible mayor que cero (Sprint 1: el disponible es el stock físico). */
-function publicoDisponible(categoria: string | undefined): Prisma.ProductoWhereInput {
+/**
+ * Activos con disponible mayor que cero (design D2 del Sprint 3): stock físico > 0 y fuera
+ * de los productos cuyas reservas activas ya cubren todo su stock.
+ */
+function publicoDisponible(
+  categoria: string | undefined,
+  sinDisponible: string[],
+): Prisma.ProductoWhereInput {
   return {
     activo: true,
     stock: { cantidad: { gt: 0 } },
+    ...(sinDisponible.length ? { id: { notIn: sinDisponible } } : {}),
     ...(categoria ? { categoria: { codigo: categoria } } : {}),
   };
+}
+
+/** Productos con todo su stock tomado por reservas ACTIVA vigentes (normalmente ninguno). */
+function productosSinDisponible(): Promise<string[]> {
+  return conPrisma(async (p) =>
+    (
+      await p.$queryRaw<{ producto_id: string }[]>`
+        SELECT ri.producto_id::text AS producto_id
+          FROM reserva_items ri
+          JOIN reservas r ON r.id = ri.reserva_id
+          JOIN stock s ON s.producto_id = ri.producto_id
+         WHERE r.estado = 'ACTIVA' AND r.vence_en > now()
+         GROUP BY ri.producto_id, s.cantidad
+        HAVING SUM(ri.cantidad) >= s.cantidad`
+    ).map((f) => f.producto_id),
+  );
 }
 
 const NO_EXISTE = { codigo: 'NO_ENCONTRADO', mensaje: 'El producto no existe.' };
@@ -163,9 +186,9 @@ export class CatalogoService {
     const marcas = leerMarcas(filtros.marca);
     if (!marcas) throw invalida('marca admite hasta 10 marcas de hasta 60 caracteres cada una.');
 
-    // Sprint 1: el disponible es el stock físico, así que el filtro "disponible > 0" va en SQL.
+    // "disponible > 0" en SQL (design D2 del Sprint 3); el número mostrado sale del almacén.
     const where: Prisma.ProductoWhereInput = {
-      ...publicoDisponible(filtros.categoria),
+      ...publicoDisponible(filtros.categoria, await productosSinDisponible()),
       ...(min || max
         ? { precio: { ...(min ? { gte: min } : {}), ...(max ? { lte: max } : {}) } }
         : {}),
@@ -188,13 +211,17 @@ export class CatalogoService {
       }),
       await p.producto.count({ where }),
     ]);
-    const productos = (await this.publicos(filas)).map(CatalogoService.aPublico);
+    // Si el almacén ya dice 0 (reserva en vuelo), el producto no se muestra como disponible.
+    const productos = (await this.publicos(filas))
+      .filter((p) => p.disponible > 0)
+      .map(CatalogoService.aPublico);
     return { productos, total, pagina, porPagina };
   }
 
   /** Marcas y sockets con disponible, con su cantidad, y rango de precio (design D7). */
   async facetas(categoria: string | undefined): Promise<Facetas> {
-    const where = publicoDisponible(categoria);
+    const sinDisponible = await productosSinDisponible();
+    const where = publicoDisponible(categoria, sinDisponible);
     const cat = categoria ?? null;
     const [marcas, sockets, precio] = await conPrisma(async (p) => [
       await p.producto.groupBy({
@@ -210,6 +237,7 @@ export class CatalogoService {
           JOIN stock s ON s.producto_id = p.id
           JOIN categorias c ON c.id = p.categoria_id
          WHERE p.activo AND s.cantidad > 0 AND p.atributos ? 'socket'
+           AND p.id <> ALL(${sinDisponible}::uuid[])
            AND (${cat}::text IS NULL OR c.codigo = ${cat}::text)
          GROUP BY 1
          ORDER BY 1`,
@@ -235,7 +263,7 @@ export class CatalogoService {
 
   private buscar(id: string): Promise<Fila | null> {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return Promise.resolve(null);
-    return conPrisma((p) => p.producto.findUnique({ where: { id }, select: seleccion }));
+    return conPrisma((p) => p.producto.findFirst({ where: { id }, select: seleccion }));
   }
 
   async listarAdmin(consulta: PaginaAdminDto): Promise<Pagina<ProductoAdmin>> {
@@ -267,7 +295,7 @@ export class CatalogoService {
     if (errorAtributos) throw invalida(errorAtributos);
 
     const fila = await conPrisma(async (p) => {
-      const categoria = await p.categoria.findUnique({ where: { codigo: dto.categoria } });
+      const categoria = await p.categoria.findFirst({ where: { codigo: dto.categoria } });
       if (!categoria) throw invalida(`La categoría ${dto.categoria} no está cargada.`);
       // Producto y stock en una sola escritura anidada (Prisma la hace en una transacción).
       return p.producto.create({
@@ -319,12 +347,17 @@ export class CatalogoService {
     dto: ActualizarStockDto,
   ): Promise<{ cantidad: number; version: number }> {
     if (!/^[0-9a-f-]{36}$/i.test(productoId)) throw new NotFoundException(NO_EXISTE);
-    return conPrisma(async (p) => {
+    const resultado = await conPrisma(async (p) => {
+      // Cantidad a la versión enviada: si la actualización gana, es la que se reemplazó.
+      const anterior = await p.stock.findFirst({
+        where: { productoId },
+        select: { cantidad: true, version: true },
+      });
       const { count } = await p.stock.updateMany({
         where: { productoId, version: dto.version },
         data: { cantidad: dto.cantidad, version: { increment: 1 } },
       });
-      const vigente = await p.stock.findUnique({
+      const vigente = await p.stock.findFirst({
         where: { productoId },
         select: { cantidad: true, version: true },
       });
@@ -337,7 +370,10 @@ export class CatalogoService {
           detalle: vigente,
         });
       }
-      return vigente;
+      return { vigente, delta: dto.cantidad - (anterior?.cantidad ?? dto.cantidad) };
     });
+    // El disponible del almacén sigue al stock físico sin esperar la reconciliación (D7).
+    await this.disponible.ajustar(productoId, resultado.delta);
+    return resultado.vigente;
   }
 }
