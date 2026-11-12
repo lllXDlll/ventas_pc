@@ -6,5 +6,7 @@ declare namespace Cloudflare {
     IA_GATEWAY_URL?: string;
     /** Token del gateway autenticado (encabezado cf-aig-authorization). */
     CF_AIG_TOKEN?: string;
+    /** "true" registra las rutas /pruebas (solo local y CI; nunca en producción, Sprint 6 D6). */
+    PRUEBAS_HABILITADAS?: string;
   }
 }

@@ -19,6 +19,13 @@ export interface ItemReserva {
   cantidad: number;
 }
 
+/** Ítem de una reserva ACTIVA vigente según Postgres (reconciliación, Sprint 6 D5). */
+export interface ItemReservaPostgres {
+  reservaId: string;
+  productoId: string;
+  cantidad: number;
+}
+
 export type ResultadoReserva =
   | { ok: true; reservaId: string; filasEscritas: number }
   | { ok: false; motivo: 'INSUFICIENTE'; productoId: string; disponible: number }
@@ -36,6 +43,10 @@ export class Inventario extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
+    this.crearEsquema();
+  }
+
+  private crearEsquema(): void {
     // WITHOUT ROWID: la clave primaria es la propia tabla, sin índice aparte.
     // Cada índice cuenta como una fila escrita más en la cuota diaria del plan gratuito.
     this.sql.exec(`
@@ -225,25 +236,38 @@ export class Inventario extends DurableObject<Env> {
   }
 
   /**
-   * Reconciliación (design D1): objetivo = físico − reservas vigentes del propio objeto.
-   * Se cuentan aquí y no desde Postgres para no pisar una reserva en vuelo (hecha en el
-   * objeto y aún no registrada en Postgres). Escribe solo si difiere o no existía.
+   * Reconciliación (design D1 del Sprint 3 y D5 del Sprint 6): objetivo = físico − reservas
+   * activas, contando la unión por id de las del propio objeto (incluye las que están en
+   * vuelo, aún no registradas en Postgres) y las ACTIVA vigentes de Postgres que el objeto no
+   * conoce (las que perdió si se borró su almacenamiento). Escribe solo si difiere.
    */
   async reconciliar(
     fisicos: { productoId: string; fisico: number }[],
     ahora: number = Date.now(),
+    reservasPostgres: ItemReservaPostgres[] = [],
   ): Promise<{ corregidos: string[] }> {
     this.expirarSincrono(ahora);
     const corregidos: string[] = [];
     this.ctx.storage.transactionSync(() => {
+      const conocidas = new Set(
+        this.sql
+          .exec<{ id: string }>('SELECT id FROM reservas')
+          .toArray()
+          .map((f) => f.id),
+      );
+      const desconocidas = new Map<string, number>();
+      for (const { reservaId, productoId, cantidad } of reservasPostgres) {
+        if (conocidas.has(reservaId)) continue;
+        desconocidas.set(productoId, (desconocidas.get(productoId) ?? 0) + cantidad);
+      }
       for (const { productoId, fisico } of fisicos) {
         const reservado =
-          this.sql
+          (this.sql
             .exec<{ total: number | null }>(
               'SELECT SUM(cantidad) AS total FROM reserva_items WHERE producto_id = ?',
               productoId,
             )
-            .toArray()[0]?.total ?? 0;
+            .toArray()[0]?.total ?? 0) + (desconocidas.get(productoId) ?? 0);
         const objetivo = Math.max(0, fisico - reservado);
         const actual = this.sql
           .exec<{ cantidad: number }>(
@@ -262,6 +286,19 @@ export class Inventario extends DurableObject<Env> {
       }
     });
     return { corregidos };
+  }
+
+  /**
+   * Borra todo el almacenamiento y recrea el esquema vacío (escenario de pérdida del
+   * almacén, Sprint 6 D6). Solo lo llama el módulo de pruebas, que no existe en producción.
+   */
+  async vaciar(): Promise<{ productos: number; reservas: number }> {
+    const contar = (tabla: string) =>
+      this.sql.exec<{ n: number }>(`SELECT COUNT(*) AS n FROM ${tabla}`).toArray()[0]?.n ?? 0;
+    const borrados = { productos: contar('disponible'), reservas: contar('reservas') };
+    await this.ctx.storage.deleteAll();
+    this.crearEsquema();
+    return borrados;
   }
 
   /** Cambio de stock físico desde el panel: suma la diferencia si el producto existe. */

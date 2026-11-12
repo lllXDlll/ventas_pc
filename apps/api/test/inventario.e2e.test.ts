@@ -274,3 +274,59 @@ describe('Inventario: métodos del Sprint 3', () => {
     expect(await inv.ajustar('sin-inicializar', 4)).toBeNull();
   });
 });
+
+describe('Inventario: pérdida del almacén (Sprint 6, D5 y D6)', () => {
+  const pg = (reservaId: string, productoId: string, cantidad = 1) => ({
+    reservaId,
+    productoId,
+    cantidad,
+  });
+
+  it('con el almacén vacío, descuenta las reservas activas que solo están en Postgres', async () => {
+    const inv = inventario();
+    const r = await inv.reconciliar([{ productoId: 'a', fisico: 5 }], Date.now(), [
+      pg('r1', 'a'),
+      pg('r2', 'a'),
+    ]);
+    expect(r.corregidos).toEqual(['a']);
+    expect(await inv.consultar('a')).toBe(3);
+  });
+
+  it('una reserva presente en el objeto y en Postgres se cuenta una sola vez', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 5);
+    const res = await inv.reservar([{ productoId: 'a', cantidad: 1 }], Date.now() + 10 * MINUTO);
+    if (!res.ok) throw new Error('debía reservar');
+    await inv.reconciliar([{ productoId: 'a', fisico: 5 }], Date.now(), [pg(res.reservaId, 'a')]);
+    expect(await inv.consultar('a')).toBe(4);
+  });
+
+  it('una reserva en vuelo, solo en el objeto, se sigue descontando', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 5);
+    await inv.reservar([{ productoId: 'a', cantidad: 2 }], Date.now() + 10 * MINUTO);
+    await inv.reconciliar([{ productoId: 'a', fisico: 5 }], Date.now(), [pg('otra', 'a')]);
+    expect(await inv.consultar('a')).toBe(2); // 5 − 2 (objeto) − 1 (Postgres)
+  });
+
+  it('sin reservas de Postgres se comporta como antes', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 1);
+    await inv.reservar([{ productoId: 'a', cantidad: 1 }], Date.now() + 10 * MINUTO);
+    await inv.reconciliar([{ productoId: 'a', fisico: 4 }]);
+    expect(await inv.consultar('a')).toBe(3);
+  });
+
+  it('vaciar borra todo, informa lo borrado y el objeto vuelve a reservar', async () => {
+    const inv = inventario();
+    await inv.reconstruir('a', 5);
+    await inv.reconstruir('b', 2);
+    await inv.reservar([{ productoId: 'a', cantidad: 1 }], Date.now() + 10 * MINUTO);
+    expect(await inv.vaciar()).toEqual({ productos: 2, reservas: 1 });
+    expect(await inv.consultar('a')).toBeNull();
+    await inv.reconstruir('a', 3);
+    const r = await inv.reservar([{ productoId: 'a', cantidad: 3 }], Date.now() + 10 * MINUTO);
+    expect(r.ok).toBe(true);
+    expect(await inv.consultar('a')).toBe(0);
+  });
+});

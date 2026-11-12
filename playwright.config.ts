@@ -26,6 +26,8 @@ const variablesApi = [
   // Asistente (Sprint 5): proveedor simulado, sin red ni costo, y un límite bajo para probarlo.
   'IA_PROVEEDOR:simulado',
   'ASISTENTE_LIMITE_24H:3',
+  // Rutas /pruebas (Sprint 6): solo en local y en la CI.
+  'PRUEBAS_HABILITADAS:true',
 ]
   .map((v) => `--var "${v}"`)
   .join(' ');

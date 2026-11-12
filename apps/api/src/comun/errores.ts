@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 
 /**
  * 429 con `{ codigo: DEMASIADAS_PETICIONES, mensaje }` y la cabecera Retry-After
@@ -16,4 +16,9 @@ export class DemasiadasPeticiones extends HttpException {
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }
+}
+
+/** 400 `{ codigo: PARAMETROS_INVALIDOS, mensaje }` (spec gestion-reglas). */
+export function parametrosInvalidos(mensaje: string): BadRequestException {
+  return new BadRequestException({ codigo: 'PARAMETROS_INVALIDOS', mensaje });
 }

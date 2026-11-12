@@ -70,6 +70,15 @@ async function pedir(metodo: string, ruta: string) {
 describe('rutas /admin', () => {
   it('existen rutas administrativas registradas', () => {
     expect(rutas.filter((r) => r.ruta.startsWith('/admin')).length).toBeGreaterThan(0);
+    // Reglas y reportes del Sprint 6 (tarea 2.5): también entran en el recorrido.
+    expect(rutas.map((r) => `${r.metodo} ${r.ruta}`)).toEqual(
+      expect.arrayContaining([
+        'GET /admin/reglas',
+        'PATCH /admin/reglas/:codigo',
+        'GET /admin/reportes/ventas',
+        'GET /admin/reportes/asistente',
+      ]),
+    );
   });
 
   it('todas exigen el rol ADMIN', () => {

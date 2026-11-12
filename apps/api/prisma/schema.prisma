@@ -290,6 +290,8 @@ model Orden {
   comprobante Comprobante?
 
   @@index([usuarioId, creadaEn])
+  /// Reporte de ventas por rango de fechas (Sprint 6).
+  @@index([creadaEn])
   @@map("ordenes")
 }
 
@@ -349,5 +351,7 @@ model UsoAsistente {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId, creadoEn])
+  /// Reporte del asistente por rango de fechas (Sprint 6).
+  @@index([creadoEn])
   @@map("uso_asistente")
 }

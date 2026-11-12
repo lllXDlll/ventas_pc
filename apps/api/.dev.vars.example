@@ -24,3 +24,6 @@ IA_HABILITADA=true
 IA_PROVEEDOR=simulado
 IA_TIMEOUT_MS=20000
 ASISTENTE_LIMITE_24H=10
+
+# Pruebas de carga (Sprint 6): registra POST /pruebas/inventario/vaciar. Nunca en producción.
+PRUEBAS_HABILITADAS=true

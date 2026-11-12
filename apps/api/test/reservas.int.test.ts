@@ -329,6 +329,20 @@ describe('disponibilidad (spec disponibilidad y catalogo)', () => {
   });
 });
 
+describe('endpoint de pruebas sin PRUEBAS_HABILITADAS (spec pruebas-carga)', () => {
+  it('POST /pruebas/inventario/vaciar responde 404 y no toca el almacén', async () => {
+    const pid = await producto(4);
+    expect(await disponible(pid)).toBe(4);
+    expect((await enviar('POST', '/pruebas/inventario/vaciar', admin)).status).toBe(404);
+    const sql = await servidor
+      .getWorker()
+      .getDurableObjectStorage('INVENTARIO', { name: 'catalogo' });
+    expect(await sql.exec('SELECT cantidad FROM disponible WHERE producto_id = ?', pid)).toEqual([
+      { cantidad: 4 },
+    ]);
+  });
+});
+
 describe('confirmación (spec reservas)', () => {
   type Api = {
     confirmar(u: string, r: string, c: string): Promise<{ id: string; comprobante: string }>;

@@ -1,4 +1,4 @@
-import type { Inventario, ItemReserva, ResultadoReserva } from './inventario';
+import type { Inventario, ItemReserva, ItemReservaPostgres, ResultadoReserva } from './inventario';
 
 /** Producto con su stock físico, tal como lo trae una consulta del catálogo. */
 export interface ProductoConStock {
@@ -34,8 +34,17 @@ export abstract class DisponibleService {
   /** Cierra una reserva confirmada sin devolver stock. */
   abstract cerrar(reservaId: string): Promise<boolean>;
 
-  /** Corrige el disponible con el stock físico; devuelve los productos corregidos. */
-  abstract reconciliar(fisicos: { productoId: string; fisico: number }[]): Promise<string[]>;
+  /**
+   * Corrige el disponible con el stock físico y las reservas ACTIVA vigentes de Postgres
+   * (unión con las del almacén, Sprint 6 D5); devuelve los productos corregidos.
+   */
+  abstract reconciliar(
+    fisicos: { productoId: string; fisico: number }[],
+    reservasPostgres?: ItemReservaPostgres[],
+  ): Promise<string[]>;
+
+  /** Borra todo el almacén (solo el módulo de pruebas, Sprint 6 D6). */
+  abstract vaciar(): Promise<{ productos: number; reservas: number }>;
 
   /** Suma una diferencia de stock físico al disponible, si el producto está inicializado. */
   abstract ajustar(productoId: string, delta: number): Promise<void>;
@@ -123,9 +132,16 @@ export class DisponibleDurableObject extends DisponibleService {
     return this.stub().cerrar(reservaId);
   }
 
-  async reconciliar(fisicos: { productoId: string; fisico: number }[]): Promise<string[]> {
+  async reconciliar(
+    fisicos: { productoId: string; fisico: number }[],
+    reservasPostgres: ItemReservaPostgres[] = [],
+  ): Promise<string[]> {
     if (fisicos.length === 0) return [];
-    return (await this.stub().reconciliar(fisicos)).corregidos;
+    return (await this.stub().reconciliar(fisicos, Date.now(), reservasPostgres)).corregidos;
+  }
+
+  vaciar(): Promise<{ productos: number; reservas: number }> {
+    return this.stub().vaciar();
   }
 
   async ajustar(productoId: string, delta: number): Promise<void> {
