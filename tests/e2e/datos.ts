@@ -9,6 +9,9 @@ export const ADMIN = {
 };
 
 /** Producto agotado del catálogo de ejemplo (Intel Core i7-14700K, stock 0). */
+/** URL de la API (las pruebas que llaman a la API directamente comparten la cookie). */
+export const API = process.env.E2E_API_URL ?? 'http://localhost:8787';
+
 export const ID_AGOTADO = '0195a000-0000-7000-8000-000000000004';
 
 export const CONTRASENA = 'clave-segura-e2e';

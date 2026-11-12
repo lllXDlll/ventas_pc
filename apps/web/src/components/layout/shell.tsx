@@ -5,7 +5,7 @@ import { CATEGORIAS, NOMBRES_CATEGORIA } from '@/lib/atributos';
 import { cn } from '@/lib/utils';
 import { BotonProximamente } from '../ui/proximamente';
 import { ACCESOS } from './accesos';
-import { BotonCarrito, MobileDrawer, SearchBar } from './interactivos';
+import { MobileDrawer, SearchBar } from './interactivos';
 
 // Organismos del shell de la tienda (Atomic Design). Sin datos propios: la zona de cuenta
 // y el mega menú llegan como slots desde app/ (spec arquitectura-frontend).
@@ -58,7 +58,16 @@ export function QuickLinks({ className }: { className?: string }) {
 }
 
 /** Cabecera fija: logo, buscador, cuenta y carrito; debajo, categorías y accesos. */
-export function Header({ cuenta, megaMenu }: { cuenta: ReactNode; megaMenu: ReactNode }) {
+export function Header({
+  cuenta,
+  megaMenu,
+  carrito,
+}: {
+  cuenta: ReactNode;
+  megaMenu: ReactNode;
+  /** Contador del carrito (contenedor de features/carrito). */
+  carrito: ReactNode;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur">
       <div className="contenedor flex h-16 items-center gap-3">
@@ -68,7 +77,7 @@ export function Header({ cuenta, megaMenu }: { cuenta: ReactNode; megaMenu: Reac
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <div className="hidden md:flex">{cuenta}</div>
           <SearchBar movil />
-          <BotonCarrito />
+          {carrito}
         </div>
       </div>
       <nav aria-label="Navegación principal" className="hidden border-t border-border md:block">

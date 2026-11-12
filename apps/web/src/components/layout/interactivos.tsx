@@ -15,23 +15,29 @@ import { ACCESOS } from './accesos';
 function FormularioBusqueda({ className, autoFocus }: { className?: string; autoFocus?: boolean }) {
   const router = useRouter();
   const q = useSearchParams().get('q') ?? '';
-  const [texto, setTexto] = useState(q);
-  useEffect(() => setTexto(q), [q]);
-  function enviar(e: FormEvent) {
+  function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const t = texto.trim();
+    // Input no controlado: lo escrito antes de hidratar se conserva y se lee aquí.
+    const t = String(new FormData(e.currentTarget).get('q') ?? '').trim();
     router.push(t ? `/catalogo?q=${encodeURIComponent(t)}` : '/catalogo');
   }
   return (
-    <form role="search" onSubmit={enviar} className={cn('relative flex w-full', className)}>
+    <form
+      role="search"
+      action="/catalogo"
+      method="get"
+      onSubmit={enviar}
+      className={cn('relative flex w-full', className)}
+    >
       <label htmlFor={autoFocus ? 'buscar-movil' : 'buscar'} className="sr-only">
         Buscar productos
       </label>
       <Input
         id={autoFocus ? 'buscar-movil' : 'buscar'}
         type="search"
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
+        name="q"
+        defaultValue={q}
+        key={q}
         placeholder="Busca procesadores, RAM, marcas…"
         className="pr-11"
         autoFocus={autoFocus}
@@ -82,24 +88,26 @@ export function SearchBar({ className, movil = false }: { className?: string; mo
   );
 }
 
-export function BotonCarrito() {
+/** Carrito de la cabecera con la cantidad de productos (Sprint 3). */
+export function BotonCarrito({ cantidad }: { cantidad: number }) {
   return (
-    <Button
-      variante="fantasma"
-      tamano="icono"
-      className="relative"
-      aria-disabled="true"
-      title="Carrito: disponible pronto"
+    <Link
+      href="/carrito"
+      className="relative inline-flex size-10 items-center justify-center rounded-control hover:bg-card"
     >
-      <ShoppingCart strokeWidth={1.5} aria-hidden="true" />
-      <span className="sr-only">Carrito (disponible pronto)</span>
-      <span
-        aria-hidden="true"
-        className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-on-color"
-      >
-        0
+      <ShoppingCart className="size-5" strokeWidth={1.5} aria-hidden="true" />
+      <span className="sr-only">
+        Carrito ({cantidad} {cantidad === 1 ? 'producto' : 'productos'})
       </span>
-    </Button>
+      {cantidad > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-on-color"
+        >
+          {cantidad > 9 ? '9+' : cantidad}
+        </span>
+      )}
+    </Link>
   );
 }
 

@@ -1,17 +1,17 @@
 'use client';
 
-import { ShoppingCart, Wrench } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { EstadoError } from '@/components/ui/estado';
-import { BotonProximamente } from '@/components/ui/proximamente';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorApi, mensajeDeError } from '@/lib/api-client';
 import { formatoPrecio } from '@/lib/format';
 import { Breadcrumbs } from '../components/filtros';
 import { ImagenProducto, SpecsTable, StockBadge } from '@/components/producto/producto';
 import { useProducto } from '../hooks/use-catalogo';
+import { AgregarAlCarrito } from './agregar-carrito';
 
 /** Detalle de producto: un agotado se muestra como tal; uno inexistente, 404. */
 export function DetalleContenedor({ id }: { id: string }) {
@@ -77,9 +77,12 @@ export function DetalleContenedor({ id }: { id: string }) {
             <p className="text-sm text-text-muted">Por ahora no hay unidades disponibles.</p>
           )}
           <div className="flex flex-wrap gap-3">
-            <BotonProximamente tamano="lg">
-              <ShoppingCart strokeWidth={1.5} /> Añadir al carrito
-            </BotonProximamente>
+            <AgregarAlCarrito
+              productoId={producto.id}
+              nombre={producto.nombre}
+              agotado={producto.agotado}
+              tamano="lg"
+            />
             {/* Sprint 2: abre el armador con este producto elegido (equipos armados no). */}
             {categoria.codigo !== 'EQUIPO_ARMADO' && (
               <Button asChild variante="contorno" tamano="lg">

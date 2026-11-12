@@ -7,6 +7,7 @@ import { MegaMenu } from '@/components/layout/mega-menu';
 import { mensajeDeError } from '@/lib/api-client';
 import { ProductGrid } from '@/components/producto/producto';
 import { useDestacados, useFacetas } from '../hooks/use-catalogo';
+import { AgregarAlCarrito } from './agregar-carrito';
 
 /** 8 productos destacados del inicio, con sus estados de carga, vacío y error. */
 export function DestacadosContenedor() {
@@ -29,7 +30,13 @@ export function DestacadosContenedor() {
       ) : data && data.productos.length === 0 ? (
         <EstadoVacio titulo="Aún no hay productos disponibles" />
       ) : (
-        <ProductGrid productos={data?.productos} cargando={!data} />
+        <ProductGrid
+          productos={data?.productos}
+          cargando={!data}
+          accion={(p) => (
+            <AgregarAlCarrito productoId={p.id} nombre={p.nombre} compacto tamano="sm" />
+          )}
+        />
       )}
     </section>
   );

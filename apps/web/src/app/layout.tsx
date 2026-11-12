@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { Footer, Header, TopBar } from '@/components/layout/shell';
 import { CuentaCabecera } from '@/features/auth/contenedores/cuenta';
+import { CarritoCabecera } from '@/features/carrito/contenedores/carrito';
 import { MegaMenuContenedor } from '@/features/catalogo/contenedores/inicio';
 import '@/styles/globals.css';
 import { Providers } from './providers';
@@ -27,7 +28,11 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body className="flex min-h-dvh flex-col">
         <Providers>
           <TopBar />
-          <Header cuenta={<CuentaCabecera />} megaMenu={<MegaMenuContenedor />} />
+          <Header
+            cuenta={<CuentaCabecera />}
+            megaMenu={<MegaMenuContenedor />}
+            carrito={<CarritoCabecera />}
+          />
           <main className="flex flex-1 flex-col">{children}</main>
           <Footer />
         </Providers>

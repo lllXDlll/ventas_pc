@@ -6,7 +6,6 @@ import { ImagenProducto, ProductCard } from '@/components/producto/producto';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EstadoError, EstadoVacio } from '@/components/ui/estado';
-import { BotonProximamente } from '@/components/ui/proximamente';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type CodigoCategoria, NOMBRES_CATEGORIA } from '@/lib/atributos';
 import { formatoPrecio } from '@/lib/format';
@@ -322,13 +321,29 @@ export function ResumenArmado({
   );
 }
 
-/** "Agregar al carrito": el carrito llega en el Sprint 3. */
-export function BotonCarritoArmado({ agregable, motivo }: { agregable: boolean; motivo: string }) {
+/** "Agregar al carrito": guarda el armado y lo agrega (Sprint 3); si no es agregable, el motivo. */
+export function BotonCarritoArmado({
+  agregable,
+  motivo,
+  ocupado,
+  onAgregar,
+}: {
+  agregable: boolean;
+  motivo: string;
+  ocupado: boolean;
+  onAgregar: () => void;
+}) {
   if (agregable) {
     return (
-      <BotonProximamente variante="contorno" className="[&>button]:w-full">
-        Agregar al carrito
-      </BotonProximamente>
+      <Button
+        type="button"
+        variante="contorno"
+        className="w-full"
+        disabled={ocupado}
+        onClick={onAgregar}
+      >
+        {ocupado ? 'Agregando…' : 'Agregar al carrito'}
+      </Button>
     );
   }
   return (

@@ -153,10 +153,13 @@ export function ProductGrid({
   productos,
   cargando = false,
   cantidadEsqueletos = 8,
+  accion,
 }: {
   productos?: Producto[];
   cargando?: boolean;
   cantidadEsqueletos?: number;
+  /** Acción de cada tarjeta (por ejemplo, el botón de carrito del contenedor). */
+  accion?: (p: Producto) => ReactNode;
 }) {
   return (
     <div
@@ -165,7 +168,7 @@ export function ProductGrid({
     >
       {cargando || !productos
         ? Array.from({ length: cantidadEsqueletos }, (_, i) => <ProductCardSkeleton key={i} />)
-        : productos.map((p) => <ProductCard key={p.id} producto={p} />)}
+        : productos.map((p) => <ProductCard key={p.id} producto={p} accion={accion?.(p)} />)}
     </div>
   );
 }

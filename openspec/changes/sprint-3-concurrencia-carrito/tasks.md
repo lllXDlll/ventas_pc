@@ -55,17 +55,17 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 `lib/carrito.ts` con `useAgregarAlCarrito` (401 → `/ingresar?volver=`), y los botones "Añadir al carrito" del catálogo (contenedor que pasa la `accion` a `ProductCard`) y del detalle (design D9). Se verifica con una prueba de Playwright: con sesión, agregar desde el detalle aumenta el contador; sin sesión, pide iniciar sesión.
-- [ ] 4.2 Pantalla `/carrito` (`features/carrito`):
+- [x] 4.1 `lib/carrito.ts` con `useAgregarAlCarrito` (401 → `/ingresar?volver=`), y los botones "Añadir al carrito" del catálogo (contenedor que pasa la `accion` a `ProductCard`) y del detalle (design D9). Se verifica con una prueba de Playwright: con sesión, agregar desde el detalle aumenta el contador; sin sesión, pide iniciar sesión.
+- [x] 4.2 Pantalla `/carrito` (`features/carrito`):
   - ítems con cantidades y quitar;
   - total;
   - estados de carga, vacío y error;
   - contador de la cabecera por slot.
 
   Se verifica con una prueba de Playwright que cambia una cantidad, quita un ítem y comprueba el total.
-- [ ] 4.3 Reserva en pantalla: "Iniciar compra", cuenta regresiva, "Pagar" como "Disponible pronto", "Cancelar reserva", aviso de producto sin stock y de reserva expirada con "Reservar de nuevo". Se verifica con una prueba de Playwright: reservar, ver el tiempo restante, cancelar, y reservar sin stock.
-- [ ] 4.4 Armador: "Agregar al carrito" guarda la configuración y la agrega cuando es agregable. Se verifica con una prueba de Playwright: el armado compatible aparece en `/carrito`.
-- [ ] 4.5 Agregar `/carrito` a las pruebas de axe y de 360 px. Se verifica con `pnpm test:e2e` en verde, en local y en la CI.
+- [x] 4.3 Reserva en pantalla: "Iniciar compra", cuenta regresiva, "Pagar" como "Disponible pronto", "Cancelar reserva", aviso de producto sin stock y de reserva expirada con "Reservar de nuevo". Se verifica con una prueba de Playwright: reservar, ver el tiempo restante, cancelar, y reservar sin stock.
+- [x] 4.4 Armador: "Agregar al carrito" guarda la configuración y la agrega cuando es agregable. Se verifica con una prueba de Playwright: el armado compatible aparece en `/carrito`.
+- [x] 4.5 Agregar `/carrito` a las pruebas de axe y de 360 px. Se verifica con `pnpm test:e2e` en verde, en local y en la CI.
 
 ## 5. Prueba de carga y cierre
 

@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { mensajeDeError } from '@/lib/api-client';
 import { NOMBRES_CATEGORIA } from '@/lib/atributos';
 import { POR_PAGINA } from '../api';
+import { AgregarAlCarrito } from './agregar-carrito';
 import {
   Breadcrumbs,
   FilterChips,
@@ -111,7 +112,12 @@ export function CatalogoContenedor() {
               <p className="text-sm text-text-muted" aria-live="polite">
                 {datos.total} productos disponibles
               </p>
-              <ProductGrid productos={datos.productos} />
+              <ProductGrid
+                productos={datos.productos}
+                accion={(p) => (
+                  <AgregarAlCarrito productoId={p.id} nombre={p.nombre} compacto tamano="sm" />
+                )}
+              />
               <Pagination filtros={filtros} pagina={datos.pagina} paginas={paginas} />
             </>
           )}

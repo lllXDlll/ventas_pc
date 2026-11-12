@@ -2,7 +2,7 @@
 // arquitectura-frontend; tareas 4.6, 6.2, 6.4, 10.1 y 10.2 del Sprint 1.5).
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import { ADMIN, ID_AGOTADO, ingresar } from './datos';
+import { ADMIN, clienteConSesion, ID_AGOTADO, ingresar } from './datos';
 
 /** Las pantallas del sitio (el panel necesita la sesión de un ADMIN); el armador desde el Sprint 2. */
 const PANTALLAS = [
@@ -19,6 +19,17 @@ async function abrirPanel(page: Page) {
   await ingresar(page, ADMIN.correo, ADMIN.contrasena);
   await expect(page.getByRole('table')).toBeVisible();
   await expect(page.getByRole('row').nth(1)).toContainText('S/');
+}
+
+/** Cliente con sesión y un producto en el carrito, en /carrito. */
+async function carritoConProducto(page: Page) {
+  await clienteConSesion(page);
+  await page.goto('/catalogo/0195a000-0000-7000-8000-000000000001');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: /^Añadir al carrito/ }).click();
+  await expect(page.getByRole('link', { name: 'Carrito (1 producto)' })).toBeVisible();
+  await page.goto('/carrito');
+  await expect(page.getByRole('list', { name: 'Productos del carrito' })).toBeVisible();
 }
 
 async function sinInfracciones(page: Page) {
@@ -50,6 +61,10 @@ test.describe('accesibilidad (axe: sin infracciones graves, contraste incluido)'
     await abrirPanel(page);
     await sinInfracciones(page);
   });
+  test('carrito', async ({ page }) => {
+    await carritoConProducto(page);
+    await sinInfracciones(page);
+  });
 });
 
 test.describe('360 px sin desplazamiento horizontal', () => {
@@ -67,6 +82,13 @@ test.describe('360 px sin desplazamiento horizontal', () => {
   }
   test('panel', async ({ page }) => {
     await abrirPanel(page);
+    await anchoCorrecto(page);
+  });
+  test('carrito', async ({ page }) => {
+    // El correo de la cabecera solo se ve en escritorio: se inicia sesión ahí y luego 360 px.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await carritoConProducto(page);
+    await page.setViewportSize({ width: 360, height: 780 });
     await anchoCorrecto(page);
   });
 });
@@ -106,17 +128,16 @@ test.describe('menú lateral móvil', () => {
   });
 });
 
-test('@humo "Añadir al carrito" y los accesos de sprints futuros no hacen peticiones', async ({
-  page,
-}) => {
-  await page.goto(`/catalogo/${ID_AGOTADO}`);
+test('@humo los accesos de sprints futuros no hacen peticiones', async ({ page }) => {
+  // Desde el Sprint 3 el carrito funciona: quedan el asistente (Armador IA) y las ofertas.
+  await page.goto('/');
   await page.waitForLoadState('networkidle');
   const peticiones: string[] = [];
   page.on('request', (r) => peticiones.push(r.url()));
   // aria-disabled: Playwright no hace clic en elementos deshabilitados, se despacha el evento.
-  await page.getByRole('button', { name: 'Añadir al carrito' }).dispatchEvent('click');
-  await expect(page.getByText('Disponible pronto').first()).toBeVisible();
   await page.getByRole('button', { name: 'Armador IA' }).dispatchEvent('click');
+  await expect(page.getByText('Disponible pronto').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Ofertas' }).dispatchEvent('click');
   await page.waitForTimeout(300);
   expect(peticiones).toEqual([]);
 });

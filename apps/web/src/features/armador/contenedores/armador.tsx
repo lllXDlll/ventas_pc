@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EstadoError } from '@/components/ui/estado';
 import { mensajeDeError } from '@/lib/api-client';
+import { useAgregarAlCarrito } from '@/lib/carrito';
 import type { CodigoCategoria } from '@/lib/atributos';
 import type { Producto } from '@/lib/tipos';
 import { type Item, sinSesion } from '../api';
@@ -89,6 +90,7 @@ export function ArmadorContenedor() {
   const pasoAbierto = abierto ?? (items.length ? 'ninguno' : primeroSinElegir);
 
   const guardar = useGuardarConfiguracion();
+  const alCarrito = useAgregarAlCarrito();
   const [aviso, setAviso] = useState<string | null>(null);
 
   const cambiar = (nuevos: Item[]) => {
@@ -130,6 +132,31 @@ export function ArmadorContenedor() {
         onSuccess: (v) => {
           navegar(urlArmador(items, v.id));
           setAviso(config ? 'Cambios guardados.' : 'Configuración guardada.');
+        },
+        onError: (e) => {
+          if (sinSesion(e)) {
+            router.push(`/ingresar?volver=${encodeURIComponent(urlArmador(items, config))}`);
+            return;
+          }
+          setAviso(mensajeDeError(e, 'No se pudo guardar la configuración.'));
+        },
+      },
+    );
+
+  // Agregar al carrito: guarda (o actualiza) la configuración y la agrega como un ítem.
+  const onAgregarAlCarrito = () =>
+    guardar.mutate(
+      { id: config, items },
+      {
+        onSuccess: (v) => {
+          navegar(urlArmador(items, v.id));
+          alCarrito.mutate(
+            { configuracionId: v.id },
+            {
+              onSuccess: () => router.push('/carrito'),
+              onError: (e) => setAviso(mensajeDeError(e, 'No se pudo agregar al carrito.')),
+            },
+          );
         },
         onError: (e) => {
           if (sinSesion(e)) {
@@ -206,7 +233,12 @@ export function ArmadorContenedor() {
                 <Save strokeWidth={1.5} />
                 {guardar.isPending ? 'Guardando…' : config ? 'Guardar cambios' : 'Guardar armado'}
               </Button>
-              <BotonCarritoArmado agregable={agregable} motivo={motivo} />
+              <BotonCarritoArmado
+                agregable={agregable}
+                motivo={motivo}
+                ocupado={guardar.isPending || alCarrito.isPending}
+                onAgregar={onAgregarAlCarrito}
+              />
             </>
           }
         />
