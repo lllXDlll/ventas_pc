@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import pg from 'pg';
 import { hashContrasena } from '../src/auth/contrasenas.ts';
+import { CODIGOS_REGLA, PARAMETROS_POR_DEFECTO } from '../src/compatibilidad/motor/parametros.ts';
 import {
   CATEGORIAS,
   type CodigoCategoria,
@@ -32,6 +33,21 @@ export async function semillaCategorias(cliente: Cliente): Promise<number> {
     );
   }
   return CATEGORIAS.length;
+}
+
+/**
+ * Las seis reglas del motor con sus parámetros por defecto (design D7 del Sprint 2).
+ * DO NOTHING: no pisa los parámetros que se hayan ajustado en la base.
+ */
+export async function semillaReglas(cliente: Cliente): Promise<number> {
+  for (const codigo of CODIGOS_REGLA) {
+    await cliente.query(
+      `INSERT INTO reglas_compatibilidad (id, codigo, parametros) VALUES ($1, $2::codigo_regla, $3::jsonb)
+       ON CONFLICT (codigo) DO NOTHING`,
+      [randomUUID(), codigo, JSON.stringify(PARAMETROS_POR_DEFECTO[codigo])],
+    );
+  }
+  return CODIGOS_REGLA.length;
 }
 
 export interface ProductoSemilla {
@@ -56,7 +72,8 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
     categoria: 'PROCESADOR',
     precio: '829.00',
     stock: 12,
-    atributos: { socket: 'AM5', potenciaConsumidaW: 65 },
+    // Disipador de serie (Wraith Stealth): alto opcional para la regla DIMENSIONES.
+    atributos: { socket: 'AM5', potenciaConsumidaW: 65, altoDisipadorMm: 54 },
   },
   {
     id: id(2),
@@ -96,6 +113,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
     atributos: {
       socket: 'AM5',
       tipoRam: 'DDR5',
+      velocidadRamMaxMhz: 6400,
       maxModulosRam: 4,
       factorForma: 'ATX',
       interfacesAlmacenamiento: ['M.2', 'SATA'],
@@ -111,6 +129,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
     atributos: {
       socket: 'LGA1700',
       tipoRam: 'DDR4',
+      velocidadRamMaxMhz: 3200,
       maxModulosRam: 4,
       factorForma: 'mATX',
       interfacesAlmacenamiento: ['M.2', 'SATA'],
@@ -126,6 +145,7 @@ export const CATALOGO_EJEMPLO: readonly ProductoSemilla[] = [
     atributos: {
       socket: 'LGA1700',
       tipoRam: 'DDR5',
+      velocidadRamMaxMhz: 7600,
       maxModulosRam: 4,
       factorForma: 'ATX',
       interfacesAlmacenamiento: ['M.2', 'SATA'],
@@ -262,12 +282,14 @@ export async function semillaCatalogo(cliente: Cliente): Promise<number> {
     const error = validarAtributos(p.categoria, p.atributos);
     if (error) throw new Error(`semilla inválida (${p.nombre}): ${error}`);
     await cliente.query(
-      // Si el producto ya existe, solo se completa la marca que falte (Sprint 1.5): no se
-      // pisan los cambios hechos desde el panel.
+      // Si el producto ya existe, solo se completan la marca y los atributos que falten
+      // (Sprints 1.5 y 2): en JSONB `a || b` gana b, así que lo ya guardado no se pisa.
       `INSERT INTO productos (id, nombre, marca, categoria_id, tipo, precio, atributos, actualizado_en)
        SELECT $1, $2, $7, c.id, $4::tipo_producto, $5, $6::jsonb, now()
          FROM categorias c WHERE c.codigo = $3
-       ON CONFLICT (id) DO UPDATE SET marca = COALESCE(productos.marca, excluded.marca)`,
+       ON CONFLICT (id) DO UPDATE SET
+         marca = COALESCE(productos.marca, excluded.marca),
+         atributos = excluded.atributos || productos.atributos`,
       [
         p.id,
         p.nombre,
@@ -315,6 +337,7 @@ export async function prepararBaseDePruebas(
   await cliente.connect();
   try {
     await semillaCategorias(cliente);
+    await semillaReglas(cliente);
     await semillaCatalogo(cliente);
     await semillaAdmin(cliente, admin.correo, admin.contrasena);
   } finally {
@@ -360,8 +383,11 @@ async function principal(): Promise<void> {
     );
   }
   try {
-    if (parte === 'categorias') console.log(`categorías: ${await semillaCategorias(cliente)}`);
-    else if (parte === 'catalogo') {
+    if (parte === 'categorias') {
+      // En el despliegue: categorías y reglas del motor (Sprint 2).
+      console.log(`categorías: ${await semillaCategorias(cliente)}`);
+      console.log(`reglas de compatibilidad: ${await semillaReglas(cliente)}`);
+    } else if (parte === 'catalogo') {
       await semillaCategorias(cliente);
       console.log(`productos de ejemplo: ${await semillaCatalogo(cliente)}`);
     } else if (parte === 'admin') {

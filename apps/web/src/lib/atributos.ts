@@ -22,6 +22,7 @@ export const ATRIBUTOS: Record<CodigoCategoria, Record<string, TipoAtributo>> = 
   PLACA_MADRE: {
     socket: 'texto',
     tipoRam: 'texto',
+    velocidadRamMaxMhz: 'entero',
     maxModulosRam: 'entero',
     factorForma: 'texto',
     interfacesAlmacenamiento: 'lista',
@@ -37,6 +38,12 @@ export const ATRIBUTOS: Record<CodigoCategoria, Record<string, TipoAtributo>> = 
   ALMACENAMIENTO: { interfaz: 'texto' },
   EQUIPO_ARMADO: {},
 };
+
+/** Atributos opcionales conocidos (copia de ATRIBUTOS_OPCIONALES de la API). */
+export const ATRIBUTOS_OPCIONALES: Partial<Record<CodigoCategoria, Record<string, TipoAtributo>>> =
+  {
+    PROCESADOR: { altoDisipadorMm: 'entero' },
+  };
 
 export const tipoDeCategoria = (c: CodigoCategoria) =>
   c === 'EQUIPO_ARMADO' ? 'EQUIPO' : 'COMPONENTE';
@@ -76,6 +83,8 @@ export const ETIQUETAS: Record<string, string> = {
   potenciaConsumidaW: 'Consumo (W)',
   tipoRam: 'Tipo de RAM',
   maxModulosRam: 'Máximo de módulos de RAM',
+  velocidadRamMaxMhz: 'Velocidad máxima de RAM (MHz)',
+  altoDisipadorMm: 'Alto del disipador (mm)',
   factorForma: 'Factor de forma',
   interfacesAlmacenamiento: 'Interfaces de almacenamiento',
   velocidadRam: 'Velocidad (MHz)',
@@ -98,6 +107,7 @@ export function formatoAtributo(nombre: string, valor: unknown): string {
   const texto = String(valor);
   if (typeof valor === 'number' && nombre.endsWith('W')) return `${texto} W`;
   if (typeof valor === 'number' && nombre.endsWith('Mm')) return `${texto} mm`;
+  if (typeof valor === 'number' && nombre.endsWith('Mhz')) return `${texto} MHz`;
   if (typeof valor === 'number' && nombre === 'velocidadRam') return `${texto} MHz`;
   return texto;
 }

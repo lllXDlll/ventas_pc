@@ -186,8 +186,9 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
 
-      # Idempotente: las ocho categorías del catálogo (design D11 del Sprint 1).
-      - name: Semilla de categorías
+      # Idempotente: las ocho categorías (D11 del Sprint 1) y las seis reglas del motor
+      # sin pisar parámetros ajustados (D7 del Sprint 2).
+      - name: Semilla de categorías y reglas de compatibilidad
         run: pnpm --filter api semilla:categorias
         env:
           DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}

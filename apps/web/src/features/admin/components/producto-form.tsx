@@ -9,6 +9,7 @@ import { FormField } from '@/components/ui/form-field';
 import { Input, Select } from '@/components/ui/input';
 import {
   ATRIBUTOS,
+  ATRIBUTOS_OPCIONALES,
   CATEGORIAS,
   type CodigoCategoria,
   etiquetaAtributo,
@@ -34,7 +35,14 @@ function AtributosFields({
   registrar: (nombre: string) => object;
   errores: Record<string, string>;
 }) {
-  const campos = Object.entries(ATRIBUTOS[categoria]);
+  const campos = [
+    ...Object.entries(ATRIBUTOS[categoria]).map(([n, t]) => ({ n, t, opcional: false })),
+    ...Object.entries(ATRIBUTOS_OPCIONALES[categoria] ?? {}).map(([n, t]) => ({
+      n,
+      t,
+      opcional: true,
+    })),
+  ];
   if (campos.length === 0) {
     return (
       <p className="text-sm text-text-muted">Esta categoría no tiene atributos obligatorios.</p>
@@ -43,10 +51,10 @@ function AtributosFields({
   return (
     <fieldset className="grid gap-3 md:grid-cols-2">
       <legend className="mb-2 text-sm font-medium">Datos técnicos</legend>
-      {campos.map(([nombre, tipo]) => (
+      {campos.map(({ n: nombre, t: tipo, opcional }) => (
         <FormField
           key={`${categoria}-${nombre}`}
-          etiqueta={etiquetaAtributo(nombre)}
+          etiqueta={`${etiquetaAtributo(nombre)}${opcional ? ' (opcional)' : ''}`}
           ayuda={tipo === 'lista' ? 'Separados por comas.' : undefined}
           error={errores[nombre]}
         >

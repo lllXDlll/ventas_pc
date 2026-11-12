@@ -6,6 +6,7 @@ import {
   semillaAdmin,
   semillaCatalogo,
   semillaCategorias,
+  semillaReglas,
   URL_LOCAL,
 } from '../scripts/semillas.ts';
 import { verificarContrasena } from '../src/auth/contrasenas';
@@ -94,6 +95,67 @@ describe('semillas', () => {
     }
   });
 
+  it('catálogo: completa atributos que faltan (Sprint 2) sin pisar los editados', async () => {
+    await semillaCategorias(cliente);
+    await semillaCatalogo(cliente);
+    const placa = CATALOGO_EJEMPLO.find((p) => p.categoria === 'PLACA_MADRE')!;
+    const { rows: antes } = await cliente.query<{ atributos: Record<string, unknown> }>(
+      'SELECT atributos FROM productos WHERE id = $1',
+      [placa.id],
+    );
+    try {
+      // Como en una base anterior al Sprint 2: sin velocidadRamMaxMhz y con un socket editado.
+      await cliente.query(
+        `UPDATE productos SET atributos = (atributos - 'velocidadRamMaxMhz') || '{"socket":"EDITADO"}'
+          WHERE id = $1`,
+        [placa.id],
+      );
+      await semillaCatalogo(cliente);
+      const { rows } = await cliente.query<{ atributos: Record<string, unknown> }>(
+        'SELECT atributos FROM productos WHERE id = $1',
+        [placa.id],
+      );
+      expect(rows[0]?.atributos.velocidadRamMaxMhz).toBe(placa.atributos.velocidadRamMaxMhz);
+      expect(rows[0]?.atributos.socket).toBe('EDITADO');
+    } finally {
+      await cliente.query('UPDATE productos SET atributos = $2::jsonb WHERE id = $1', [
+        placa.id,
+        JSON.stringify(antes[0]?.atributos),
+      ]);
+    }
+  });
+
+  it('reglas: dos ejecuciones dejan las seis y conservan un margen ajustado', async () => {
+    await semillaReglas(cliente);
+    const original = await cliente.query<{ parametros: Record<string, number> }>(
+      `SELECT parametros FROM reglas_compatibilidad WHERE codigo = 'POTENCIA'`,
+    );
+    try {
+      await cliente.query(
+        `UPDATE reglas_compatibilidad SET parametros = parametros || '{"margenPorcentaje":25}'
+          WHERE codigo = 'POTENCIA'`,
+      );
+      await semillaReglas(cliente);
+      const { rows } = await cliente.query<{ codigo: string; parametros: Record<string, number> }>(
+        'SELECT codigo::text AS codigo, parametros FROM reglas_compatibilidad ORDER BY codigo',
+      );
+      expect(rows.map((r) => r.codigo).sort()).toEqual([
+        'ALMACENAMIENTO',
+        'DIMENSIONES',
+        'FACTOR_FORMA',
+        'POTENCIA',
+        'RAM',
+        'SOCKET',
+      ]);
+      expect(rows.find((r) => r.codigo === 'POTENCIA')?.parametros.margenPorcentaje).toBe(25);
+    } finally {
+      await cliente.query(
+        `UPDATE reglas_compatibilidad SET parametros = $1::jsonb WHERE codigo = 'POTENCIA'`,
+        [JSON.stringify(original.rows[0]?.parametros)],
+      );
+    }
+  });
+
   it('el catálogo de ejemplo cubre lo que pide la spec y tiene atributos válidos', () => {
     for (const p of CATALOGO_EJEMPLO) {
       expect(validarAtributos(p.categoria, p.atributos), p.nombre).toBeNull();
@@ -110,6 +172,12 @@ describe('semillas', () => {
     expect(de('EQUIPO_ARMADO').length).toBeGreaterThanOrEqual(1);
     expect(CATALOGO_EJEMPLO.every((p) => p.marca.trim().length > 0)).toBe(true);
     expect(new Set(de('PROCESADOR').map((p) => p.marca)).size).toBeGreaterThanOrEqual(2);
+    expect(de('PLACA_MADRE').every((p) => typeof p.atributos.velocidadRamMaxMhz === 'number')).toBe(
+      true,
+    );
+    expect(de('PROCESADOR').some((p) => typeof p.atributos.altoDisipadorMm === 'number')).toBe(
+      true,
+    );
   });
 
   it('administrador: idempotente, rol ADMIN y hash que la verificación acepta', async () => {

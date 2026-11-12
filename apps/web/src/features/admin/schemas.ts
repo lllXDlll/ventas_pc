@@ -1,6 +1,12 @@
 // Validación del formulario de producto con las mismas reglas que la API.
 import { z } from 'zod';
-import { ATRIBUTOS, CATEGORIAS, type CodigoCategoria, convertir } from '@/lib/atributos';
+import {
+  ATRIBUTOS,
+  ATRIBUTOS_OPCIONALES,
+  CATEGORIAS,
+  type CodigoCategoria,
+  convertir,
+} from '@/lib/atributos';
 
 export const MAX_BYTES_IMAGEN = 2 * 1024 * 1024;
 export const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp'];
@@ -33,6 +39,12 @@ export function erroresAtributos(
     else if (tipo === 'entero' && !/^[1-9]\d*$/.test(v))
       errores[nombre] = 'Debe ser un entero positivo.';
   }
+  // Opcionales (Sprint 2): solo se validan si se completaron.
+  for (const [nombre, tipo] of Object.entries(ATRIBUTOS_OPCIONALES[categoria] ?? {})) {
+    const v = (valores[nombre] ?? '').trim();
+    if (v && tipo === 'entero' && !/^[1-9]d*$/.test(v))
+      errores[nombre] = 'Debe ser un entero positivo.';
+  }
   return errores;
 }
 
@@ -45,6 +57,9 @@ export function atributosDe(
   const atributos: Record<string, unknown> = {};
   for (const [nombre, tipo] of Object.entries(ATRIBUTOS[categoria])) {
     atributos[nombre] = convertir(valores[nombre] ?? '', tipo);
+  }
+  for (const [nombre, tipo] of Object.entries(ATRIBUTOS_OPCIONALES[categoria] ?? {})) {
+    if ((valores[nombre] ?? '').trim()) atributos[nombre] = convertir(valores[nombre] ?? '', tipo);
   }
   if (descripcion?.trim()) atributos.descripcion = descripcion.trim();
   return atributos;

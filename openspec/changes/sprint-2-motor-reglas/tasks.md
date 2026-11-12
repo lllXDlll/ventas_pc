@@ -2,25 +2,25 @@
 
 ## 1. Atributos técnicos y semillas
 
-- [ ] 1.1 Agregar `velocidadRamMaxMhz` obligatorio a PLACA_MADRE y `ATRIBUTOS_OPCIONALES` con `altoDisipadorMm` en PROCESADOR, validados por tipo solo si están presentes (design D6), en `catalogo/atributos.ts` y en la copia `apps/web/src/lib/atributos.ts`. Se verifica con:
+- [x] 1.1 Agregar `velocidadRamMaxMhz` obligatorio a PLACA_MADRE y `ATRIBUTOS_OPCIONALES` con `altoDisipadorMm` en PROCESADOR, validados por tipo solo si están presentes (design D6), en `catalogo/atributos.ts` y en la copia `apps/web/src/lib/atributos.ts`. Se verifica con:
   - pruebas unitarias de los escenarios de "Atributos técnicos validados por categoría";
   - la prueba de sincronización con la web, ampliada a los opcionales.
-- [ ] 1.2 Semilla del catálogo:
+- [x] 1.2 Semilla del catálogo:
   - `velocidadRamMaxMhz` en las 3 placas;
   - `altoDisipadorMm` en el Ryzen 5 7600;
   - `ON CONFLICT` que completa los atributos que faltan sin pisar los editados (`excluded.atributos || productos.atributos`).
 
   Se verifica con `semillas.int` ampliada: placas sin el atributo quedan con él, y un atributo editado conserva su valor.
-- [ ] 1.3 `semillaReglas`: seis reglas con sus parámetros por defecto (`POTENCIA: { margenPorcentaje: 20, consumoBaseW: 0 }`) y `ON CONFLICT DO NOTHING`. Se incluye en `semilla:categorias` y en `prepararBaseDePruebas`, y se renombra el paso de la CI (design D7). Se verifica con una prueba de integración: dos ejecuciones dan seis reglas y conservan un margen cambiado a 25 %.
+- [x] 1.3 `semillaReglas`: seis reglas con sus parámetros por defecto (`POTENCIA: { margenPorcentaje: 20, consumoBaseW: 0 }`) y `ON CONFLICT DO NOTHING`. Se incluye en `semilla:categorias` y en `prepararBaseDePruebas`, y se renombra el paso de la CI (design D7). Se verifica con una prueba de integración: dos ejecuciones dan seis reglas y conservan un margen cambiado a 25 %.
 
 ## 2. Motor de compatibilidad (puro)
 
-- [ ] 2.1 Tipos (`Pieza`, `ConfiguracionEvaluable`, `Rechazo`, `Regla`), agrupación por categoría y catálogo de mensajes (design D1 y D3). Se verifica con `pnpm --filter api typecheck` y con pruebas unitarias de la agrupación.
-- [ ] 2.2 Reglas SOCKET y FACTOR_FORMA. Se verifica con pruebas unitarias: caso válido, inválido, sin datos y sin distinguir mayúsculas. El mensaje debe nombrar las piezas y los valores.
-- [ ] 2.3 Regla RAM (tipo, velocidad y módulos sumados; tolera una placa sin `velocidadRamMaxMhz`). Se verifica con pruebas unitarias de los tres motivos, de varios rechazos a la vez y de la placa sin el atributo.
-- [ ] 2.4 Regla POTENCIA con margen y consumo base desde parámetros, y redondeo hacia arriba (design D2). Se verifica con pruebas unitarias del ejemplo de la spec (466 W frente a 400 W), del margen configurado al 30 % y del caso dentro del margen.
-- [ ] 2.5 Reglas DIMENSIONES (GPU y disipador opcional) y ALMACENAMIENTO (una por unidad). Se verifica con pruebas unitarias de cada escenario de la spec.
-- [ ] 2.6 Orquestador: orden fijo, reglas inactivas omitidas y regla sin fila activa con sus valores por defecto. Se verifica con pruebas unitarias.
+- [x] 2.1 Tipos (`Pieza`, `ConfiguracionEvaluable`, `Rechazo`, `Regla`), agrupación por categoría y catálogo de mensajes (design D1 y D3). Se verifica con `pnpm --filter api typecheck` y con pruebas unitarias de la agrupación.
+- [x] 2.2 Reglas SOCKET y FACTOR_FORMA. Se verifica con pruebas unitarias: caso válido, inválido, sin datos y sin distinguir mayúsculas. El mensaje debe nombrar las piezas y los valores.
+- [x] 2.3 Regla RAM (tipo, velocidad y módulos sumados; tolera una placa sin `velocidadRamMaxMhz`). Se verifica con pruebas unitarias de los tres motivos, de varios rechazos a la vez y de la placa sin el atributo.
+- [x] 2.4 Regla POTENCIA con margen y consumo base desde parámetros, y redondeo hacia arriba (design D2). Se verifica con pruebas unitarias del ejemplo de la spec (466 W frente a 400 W), del margen configurado al 30 % y del caso dentro del margen.
+- [x] 2.5 Reglas DIMENSIONES (GPU y disipador opcional) y ALMACENAMIENTO (una por unidad). Se verifica con pruebas unitarias de cada escenario de la spec.
+- [x] 2.6 Orquestador: orden fijo, reglas inactivas omitidas y regla sin fila activa con sus valores por defecto. Se verifica con pruebas unitarias.
 
 ## 3. API de compatibilidad y configuraciones
 

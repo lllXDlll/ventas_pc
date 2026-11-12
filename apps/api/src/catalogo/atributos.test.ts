@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ATRIBUTOS_OBLIGATORIOS,
+  ATRIBUTOS_OPCIONALES,
   CATEGORIAS,
   type CodigoCategoria,
   NOMBRES_CATEGORIA,
@@ -13,6 +14,7 @@ export const VALIDOS: Record<CodigoCategoria, Record<string, unknown>> = {
   PROCESADOR: { socket: 'AM5', potenciaConsumidaW: 105 },
   PLACA_MADRE: {
     socket: 'AM5',
+    velocidadRamMaxMhz: 6400,
     tipoRam: 'DDR5',
     maxModulosRam: 4,
     factorForma: 'ATX',
@@ -82,5 +84,24 @@ describe('copia del frontend (apps/web/src/lib/atributos.ts)', () => {
     expect(web.ATRIBUTOS).toEqual(ATRIBUTOS_OBLIGATORIOS);
     expect([...web.CATEGORIAS]).toEqual([...CATEGORIAS]);
     expect(web.NOMBRES_CATEGORIA).toEqual(NOMBRES_CATEGORIA);
+    expect(web.ATRIBUTOS_OPCIONALES).toEqual(ATRIBUTOS_OPCIONALES);
+  });
+});
+
+describe('atributos del Sprint 2', () => {
+  it('la placa madre exige velocidadRamMaxMhz', () => {
+    const sinVelocidad = { ...VALIDOS.PLACA_MADRE };
+    delete sinVelocidad.velocidadRamMaxMhz;
+    expect(validarAtributos('PLACA_MADRE', sinVelocidad)).toContain('velocidadRamMaxMhz');
+  });
+
+  it('altoDisipadorMm es opcional y, si está, debe ser un entero positivo', () => {
+    expect(validarAtributos('PROCESADOR', VALIDOS.PROCESADOR)).toBeNull();
+    expect(
+      validarAtributos('PROCESADOR', { ...VALIDOS.PROCESADOR, altoDisipadorMm: 54 }),
+    ).toBeNull();
+    expect(
+      validarAtributos('PROCESADOR', { ...VALIDOS.PROCESADOR, altoDisipadorMm: -5 }),
+    ).toContain('altoDisipadorMm');
   });
 });

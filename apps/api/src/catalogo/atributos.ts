@@ -24,6 +24,7 @@ export const ATRIBUTOS_OBLIGATORIOS: Readonly<
   PLACA_MADRE: {
     socket: 'texto',
     tipoRam: 'texto',
+    velocidadRamMaxMhz: 'entero',
     maxModulosRam: 'entero',
     factorForma: 'texto',
     interfacesAlmacenamiento: 'lista',
@@ -38,6 +39,16 @@ export const ATRIBUTOS_OBLIGATORIOS: Readonly<
   },
   ALMACENAMIENTO: { interfaz: 'texto' },
   EQUIPO_ARMADO: {},
+};
+
+/**
+ * Atributos opcionales conocidos (Sprint 2, design D6): se validan por tipo solo si están.
+ * altoDisipadorMm: alto del disipador incluido con el procesador.
+ */
+export const ATRIBUTOS_OPCIONALES: Readonly<
+  Partial<Record<CodigoCategoria, Readonly<Record<string, TipoAtributo>>>>
+> = {
+  PROCESADOR: { altoDisipadorMm: 'entero' },
 };
 
 export const NOMBRES_CATEGORIA: Readonly<Record<CodigoCategoria, string>> = {
@@ -90,6 +101,11 @@ export function validarAtributos(categoria: CodigoCategoria, atributos: unknown)
   for (const [nombre, tipo] of Object.entries(ATRIBUTOS_OBLIGATORIOS[categoria])) {
     if (!(nombre in valores)) return `falta el atributo obligatorio "${nombre}"`;
     if (!cumpleTipo(valores[nombre], tipo)) {
+      return `el atributo "${nombre}" debe ser ${DESCRIPCION_TIPO[tipo]}`;
+    }
+  }
+  for (const [nombre, tipo] of Object.entries(ATRIBUTOS_OPCIONALES[categoria] ?? {})) {
+    if (nombre in valores && !cumpleTipo(valores[nombre], tipo)) {
       return `el atributo "${nombre}" debe ser ${DESCRIPCION_TIPO[tipo]}`;
     }
   }
